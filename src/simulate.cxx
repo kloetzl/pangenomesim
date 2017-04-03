@@ -46,7 +46,7 @@ auto genome_name(size_t genome_number)
 	return ret;
 }
 
-void mkpath(const std::string &path)
+void mkpath(std::string path)
 {
 	const auto flags = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
 	int check = ::mkdir(path.c_str(), flags);
@@ -56,10 +56,11 @@ void mkpath(const std::string &path)
 	if (errno != ENOENT) {
 		err(errno, "%s", path.c_str());
 	}
+
 	auto parent = path.substr(0, path.find_last_of('/'));
 	mkpath(parent);
 	check = ::mkdir(path.c_str(), flags);
-	if (check) {
+	if (check && errno != EEXIST) {
 		err(errno, "%s", path.c_str());
 	}
 }
@@ -110,11 +111,7 @@ void simulate()
 	}
 
 	// create output directory
-	auto check =
-		mkdir(OUT_DIR.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-	if (check && errno != EEXIST) {
-		err(errno, "%s", OUT_DIR.c_str());
-	}
+	mkpath(OUT_DIR);
 
 	auto check_io = [](const std::ofstream &o, const std::string &n) {
 		if (!o) {
