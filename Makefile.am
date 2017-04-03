@@ -4,5 +4,9 @@ pangenomesim_CPPFLAGS=-std=c++14 -Wall -Wextra -Weffc++
 pangenomesim_CXXFLAGS=
 
 clean-local:
-	rm -rf *.fasta *.maf seed
+	rm -rf *.fasta *.maf *.seed
 	rm -rf foo
+
+.PHONY: format
+format:
+	clang-format -i src/*.cxx src/*.h

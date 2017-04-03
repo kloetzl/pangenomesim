@@ -23,8 +23,8 @@ void version();
 
 double EVO_DISTANCE = 0.01;
 size_t GENE_LENGTH = 100;
-size_t NUM_GENOMES = 3;
 size_t NUM_GENES = 5;
+size_t NUM_GENOMES = 3;
 std::string OUT_DIR = std::string("./");
 double PROBABILITY = 0.8;
 size_t SEED = 1729;
@@ -66,12 +66,14 @@ int main(int argc, char *argv[])
 	static const struct option long_options[] = {
 		{"version", no_argument, NULL, 0},
 		{"help", no_argument, NULL, 0},
+		{"evo-distance", required_argument, NULL, 'e'},
 		{"gene-length", required_argument, NULL, 'l'},
 		{"num-genes", required_argument, NULL, 'm'},
 		{"num-genomes", required_argument, NULL, 'n'},
 		{"out-dir", required_argument, NULL, 'o'},
 		{"probability", required_argument, NULL, 'p'},
 		{"seed", required_argument, NULL, 's'},
+		{"threshold", required_argument, NULL, 't'},
 		{"verbose", no_argument, NULL, 'v'} // no comment
 	};
 
@@ -211,13 +213,21 @@ int main(int argc, char *argv[])
 	};
 
 	{ // print reproducible information
-		auto rep_file_name = OUT_DIR + "seed";
+		auto rep_file_name = OUT_DIR + "reproducible.seed";
 		auto rep_file = std::ofstream(rep_file_name);
 		check_io(rep_file, rep_file_name);
 
-		rep_file << "pangenomesim " VERSION << "\n";
-		rep_file << SEED << "\n";
-		// … arguments
+		rep_file << "pangenomesim " VERSION << "\n\n";
+		rep_file << "full options:\n";
+		rep_file << "--evo-distance=" << EVO_DISTANCE << "\n";
+		rep_file << "--gene-length=" << GENE_LENGTH << "\n";
+		rep_file << "--num-genes=" << NUM_GENES << "\n";
+		rep_file << "--num-genomes=" << NUM_GENOMES << "\n";
+		rep_file << "--out-dir=" << OUT_DIR << "\n";
+		rep_file << "--probability=" << PROBABILITY << "\n";
+		rep_file << "--seed=" << SEED << "\n";
+		rep_file << "--threshold=" << THRESHOLD << "\n";
+
 		check_io(rep_file, rep_file_name);
 	}
 
@@ -257,6 +267,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	auto genome_sizes = std::vector<size_t>(NUM_GENOMES);
+
 	// print derived genomes
 	for (auto gn : genome_numbers) {
 		auto file_name = OUT_DIR + genome_name(gn + 1) + ".fasta";
@@ -275,11 +287,13 @@ int main(int argc, char *argv[])
 					   << pg.derived(idx) << std::endl;
 			check_io(fasta_file, file_name);
 		}
+
+		genome_sizes[gn] = chromosome * GENE_LENGTH;
 	}
 
 	{ // print MAF alignment
-		auto reference_counter = 1;
-		auto chromosome_counters = std::vector<size_t>(NUM_GENOMES, 1);
+		auto reference_counter = 0;
+		auto chromosome_counters = std::vector<size_t>(NUM_GENOMES);
 		auto maf_file_name = OUT_DIR + "alignment.maf";
 		auto maf_file = std::ofstream(maf_file_name);
 		check_io(maf_file, maf_file_name);
@@ -287,17 +301,36 @@ int main(int argc, char *argv[])
 		maf_file << "##maf version=1\n";
 		check_io(maf_file, maf_file_name);
 
+		/* MAF format
+		 *
+		 * a
+		 * s hg16.chr17    876234      13    +         6787  acgtagc
+		 * s mm.chr12      872432      13    -         2345  TGCATAA
+		 * s <name>.<chr>  <start> <size> <strand> <srcSize>  <seq>
+		 */
+
 		for (const auto &pg : pan_genes) {
+			auto src_size = NUM_GENES * GENE_LENGTH;
 			maf_file << "a\n";
-			maf_file << "s ref.chr" << reference_counter++ << "\n"
-					 << pg.reference() << std::endl;
+			maf_file << "s ref.chr" << reference_counter << "\t" //
+					 << reference_counter * GENE_LENGTH			//
+					 << "\t" << GENE_LENGTH						//
+					 << "\t" << src_size							//
+					 << "\t" << pg.reference() << std::endl;
+
+			reference_counter++;
 
 			auto size = pg.size();
 			for (size_t k = 0; k < size; k++) {
 				auto gn = pg.genome_number(k);
 				maf_file << "s " << genome_name(gn + 1) << ".chr"
-						 << chromosome_counters[gn]++ << " " << pg.reference()
-						 << std::endl;
+						 << (chromosome_counters[gn] + 1)						 //
+						 << "\t" << chromosome_counters[gn] * GENE_LENGTH //
+						 << "\t" << GENE_LENGTH							 //
+						 << "\t" << genome_sizes[gn]						 //
+						 << "\t" << pg.reference() << std::endl;
+
+				chromosome_counters[gn]++;
 			}
 
 			maf_file << std::endl;
@@ -334,8 +367,9 @@ void version()
 {
 	static const char str[] = {
 		"pangenomesim " VERSION "\n"
-		"Copyright (C) 2017  Fabian Klötzl <kloetzl@evolbio.mpg.de>\n"
-		"BSD License\n" //
+		"Copyright (C) 2017,  Fabian Klötzl "
+		"<fabian-pangenomesim@kloetzl.info>\n"
+		"BSD 2-Clause License\n" //
 	};
 	printf("%s", str);
 	exit(EXIT_SUCCESS);
