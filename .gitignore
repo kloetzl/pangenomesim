@@ -1,0 +1,24 @@
+# autotools
+.deps/
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+config.log
+config.status
+configure
+depcomp
+install-sh
+missing
+src/config.h
+src/config.hin
+src/stamp-h1
+
+# binaries
+*.o
+pangenomesim
+
+# random files
+*.fasta
+*.maf
+*.seed
