@@ -1,5 +1,6 @@
 #include "pangene.h"
 #include "global.h"
+#include "simple.h"
 #include <algorithm>
 #include <functional>
 #include <string>
@@ -11,22 +12,22 @@ static auto NO_C = "AGT";
 static auto NO_G = "ACT";
 static auto NO_T = "ACG";
 
-std::string random_seq()
+std::string pan_gene::random_seq() const
 {
 	auto ret = std::string();
-	ret.reserve(GENE_LENGTH);
+	ret.reserve(m->loci_length);
 
 	auto random_base_dist = std::uniform_int_distribution<int>(0, 3);
 	auto random_base = [&] { return ACGT[random_base_dist(RNG)]; };
 
-	for (size_t i = 0; i < GENE_LENGTH; i++) {
+	for (size_t i = 0; i < m->loci_length; i++) {
 		ret += random_base();
 	}
 
 	return ret;
 }
 
-std::string derive_seq(const std::string &reference)
+std::string pan_gene::derive_seq(const std::string &reference) const
 {
 	auto ret = std::string(reference);
 
@@ -44,8 +45,8 @@ std::string derive_seq(const std::string &reference)
 		}
 	};
 
-	double nucleotides = GENE_LENGTH;
-	double mutations = EVO_DISTANCE * nucleotides;
+	double nucleotides = m->loci_length;
+	double mutations = m->evo_distance * nucleotides;
 	for (auto &c : ret) {
 		if (mut() < mutations / nucleotides) {
 			c = mutate(c);
@@ -57,8 +58,8 @@ std::string derive_seq(const std::string &reference)
 	return ret;
 }
 
-pan_gene::pan_gene(std::vector<size_t> __genome_numbers)
-	: genome_numbers(__genome_numbers)
+pan_gene::pan_gene(const simple_model *mm, std::vector<size_t> __genome_numbers)
+	: m(mm), genome_numbers(__genome_numbers)
 {
 	reference_sequence = random_seq();
 	for (auto _ : genome_numbers) {
