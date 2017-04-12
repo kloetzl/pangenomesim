@@ -12,6 +12,7 @@ install-sh
 missing
 src/config.h
 src/config.hin
+src/config.hin~
 src/stamp-h1
 
 # binaries
