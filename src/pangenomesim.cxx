@@ -1,6 +1,6 @@
 #include "evo_model.h"
 #include "global.h"
-#include "img.h"
+// #include "img.h"
 #include "locus.h"
 #include "simple.h"
 #include "util.h"
@@ -10,6 +10,7 @@
 #include <functional>
 #include <iostream>
 #include <random>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -66,20 +67,42 @@ int main(int argc, char *argv[])
 					if (!model) {
 						errx(1, "set an evolutionary model via --model first");
 					}
-					// may throw
-					model->parse_param(option_string, optarg);
+
+					auto arg_string = std::string(optarg);
+
+					// implement `getsubsopt(3)` like functionality
+					auto pattern = std::string("^(\\w+)(?:=(\\w+))?,?");
+					auto r = std::regex(pattern);
+
+					auto m = std::smatch();
+					while (std::regex_search(arg_string, m, r)) {
+						auto key = m[1];
+						auto value = m.size() == 3 ? m[2] : std::string();
+						std::cerr << key << ":" << value << std::endl;
+
+						// may throw
+						model->parse_param(key, value);
+						arg_string = m.suffix();
+					}
+
+					if (!arg_string.empty()) {
+						errx(1, "invalid parameter %s", optarg);
+					}
+
+					break;
 				} else if (option_string == "model") {
 					auto model_name = std::string(optarg);
 					if (model_name == "simple") {
 						model = new simple_model();
-					} else if (model_name == "IMG") {
-						model = new img_model();
+					// } else if (model_name == "IMG") {
+						// model = new img_model();
 					} else {
 						errx(1, "unknown model: %s", model_name.c_str());
 					}
 				} else {
 					return 1;
 				}
+				break;
 			}
 			case 'o': {
 				OUT_DIR = std::string(optarg) + "/";
@@ -96,6 +119,10 @@ int main(int argc, char *argv[])
 
 	// create ouput directory
 	mkpath(OUT_DIR);
+
+	if (!model) {
+		errx(1, "no evolutionary model selected");
+	}
 	model->simulate(); // do the work
 
 	auto check_io = [](const std::ofstream &o, const std::string &n) {
