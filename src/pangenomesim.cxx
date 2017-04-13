@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 					auto model_name = std::string(optarg);
 					if (model_name == "simple") {
 						model = new simple_model();
-					// } else if (model_name == "IMG") {
+						// } else if (model_name == "IMG") {
 						// model = new img_model();
 					} else {
 						errx(1, "unknown model: %s", model_name.c_str());
@@ -131,7 +131,6 @@ int main(int argc, char *argv[])
 		}
 	};
 
-	// TODO: output
 	auto rep_file_name = OUT_DIR + "reproducible.seed";
 	auto rep_file = std::ofstream(rep_file_name);
 	check_io(rep_file, rep_file_name);
@@ -142,6 +141,48 @@ int main(int argc, char *argv[])
 
 	check_io(rep_file, rep_file_name);
 
+	{ // print reference, core-, and accessory-genome
+		auto ref_file_name = OUT_DIR + "ref.fasta";
+		auto cor_file_name = OUT_DIR + "core.fasta";
+		auto acc_file_name = OUT_DIR + "accessory.fasta";
+		auto ref_fasta_file = std::ofstream(ref_file_name);
+		auto cor_fasta_file = std::ofstream(cor_file_name);
+		auto acc_fasta_file = std::ofstream(acc_file_name);
+		check_io(ref_fasta_file, ref_file_name);
+		check_io(cor_fasta_file, cor_file_name);
+		check_io(acc_fasta_file, acc_file_name);
+
+		for (const auto &loc : model->get_reference()) {
+			ref_fasta_file << loc.to_fasta();
+		}
+
+		for (const auto &loc : model->get_core()) {
+			cor_fasta_file << loc.to_fasta();
+		}
+
+		for (const auto &loc : model->get_accessory()) {
+			acc_fasta_file << loc.to_fasta();
+		}
+
+		check_io(ref_fasta_file, ref_file_name);
+		check_io(cor_fasta_file, cor_file_name);
+		check_io(acc_fasta_file, acc_file_name);
+	}
+
+	// print derived genomes
+	for (ssize_t gn = 0; gn < model->get_num_genomes(); gn++) {
+		auto file_name = OUT_DIR + genome_name(gn + 1) + ".fasta";
+		auto fasta_file = std::ofstream(file_name);
+		check_io(fasta_file, file_name);
+
+		auto loci = model->get_genome(gn);
+		for (const auto &loc: loci) {
+			fasta_file << loc.to_fasta();
+		}
+
+		check_io(fasta_file, file_name);
+	}
+
 	delete model;
 	return 0;
 }
@@ -151,8 +192,8 @@ void usage(int exit_code)
 	static const char str[] = {
 		"usage: pangenomesim [OPTIONS...]\n"
 		"Simulate a pan-genome.\n\n"
-		"  -o, --out-dir=DIR        The directory to write files to\n"
-		"  -p, --probability=FLOAT  Set simulation parameter\n"
+		"  -o, --out-dir DIR        The directory to write files to\n"
+		"      --param KEY=VALUE    Set simulation parameter\n"
 		"  -v, --verbose            Print additional information\n"
 		"      --help               Display help and exit\n"
 		"      --version            Output version information and exit\n" //

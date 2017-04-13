@@ -1,8 +1,8 @@
 #include "evo_model.h"
 #include <exception>
+#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <sstream>
 
 void evo_model::parse_param(std::string key, std::string value)
 {
@@ -24,7 +24,6 @@ void evo_model::parse_param(std::string key, std::string value)
 	}
 	throw std::invalid_argument(std::string("unkown parameter ") + key);
 }
-
 
 std::string evo_model::parameters() const
 {

@@ -16,7 +16,7 @@ class simple_model : public evo_model
   public:
 	simple_model() = default;
 
-	std::string parameters();
+	virtual std::string parameters() const;
 	virtual void parse_param(std::string, std::string);
 	void simulate();
 

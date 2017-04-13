@@ -1,4 +1,5 @@
 #pragma once
+#include "util.h"
 #include <string>
 
 class locus
@@ -14,4 +15,16 @@ class locus
 	const std::string &get_nucl() const;
 	size_t get_genome_id() const;
 	size_t get_locus_id() const;
+
+	std::string to_fasta() const
+	{
+		auto ret = std::string(">");
+		ret += genome_name(genome_id);
+		ret += ".";
+		ret += std::to_string(locus_id);
+		ret += "\n";
+		ret += nucl;
+		ret += "\n";
+		return ret;
+	}
 };

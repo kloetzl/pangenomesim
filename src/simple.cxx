@@ -58,20 +58,19 @@ std::vector<double> simple_model::create_distribution()
 	return distribution;
 }
 
-std::string simple_model::parameters()
+std::string simple_model::parameters() const
 {
 	auto str = std::stringstream();
 
 	str << "pangenomesim " VERSION << "\n\n";
 	str << "full options:\n";
-	str << "--evo-distance=" << evo_distance << "\n";
-	str << "--gene-length=" << loci_length << "\n";
-	str << "--num-genes=" << num_loci << "\n";
-	str << "--num-genomes=" << num_genomes << "\n";
-	str << "--out-dir=" << OUT_DIR << "\n";
-	str << "--probability=" << probability << "\n";
-	str << "--seed=" << seed << "\n";
-	str << "--threshold=" << threshold << "\n";
+	str << "--param evo-distance=" << evo_distance << "\n";
+	str << "--param loci-length=" << loci_length << "\n";
+	str << "--param num-loci=" << num_loci << "\n";
+	str << "--param num-genomes=" << num_genomes << "\n";
+	str << "--param probability=" << probability << "\n";
+	str << "--param seed=" << seed << "\n";
+	str << "--param threshold=" << threshold << "\n";
 
 	return str.str();
 }
@@ -186,7 +185,7 @@ void simple_model::simulate()
 	}
 
 	// simulate pan genomes
-	auto pan_genes = std::vector<pan_gene>();
+	pan_genes = std::vector<pan_gene>();
 	for (size_t ng = 0; ng < num_loci; ng++) {
 		auto random_float = rng_float();
 		if (VERBOSE) {

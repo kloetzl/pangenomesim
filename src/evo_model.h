@@ -20,6 +20,16 @@ class evo_model
 	virtual std::string parameters() const;
 	virtual void simulate() = 0;
 
+	auto get_num_genomes() const
+	{
+		return num_genomes;
+	}
+
+	auto get_num_loci() const
+	{
+		return num_loci;
+	}
+
 	virtual std::vector<locus> get_reference() = 0;
 	virtual std::vector<locus> get_core() = 0;
 	virtual std::vector<locus> get_accessory() = 0;
