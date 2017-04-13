@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 		check_io(fasta_file, file_name);
 
 		auto loci = model->get_genome(gn);
-		for (const auto &loc: loci) {
+		for (const auto &loc : loci) {
 			fasta_file << loc.to_fasta();
 		}
 

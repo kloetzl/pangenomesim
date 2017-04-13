@@ -4,14 +4,103 @@
 #include <sstream>
 #include <string>
 
+class tree_node
+{
+	tree_node *parent = nullptr;
+	tree_node *left_child = nullptr;
+	tree_node *right_child = nullptr;
+	double up_time = 0.0;
+	ssize_t index = 0; //?
+
+  public:
+	static tree_node leaf();
+	tree_node() = default;
+	~tree_node() = default;
+
+	void set_left(tree_node *new_left) {
+		left_child = new_left;
+		left_child->parent = this;
+	}
+
+	void set_right(tree_node *new_right) {
+		right_child = new_right;
+		right_child->parent = this;
+	}
+
+	bool is_branch() const
+	{
+		return left_child != nullptr;
+	}
+
+	bool is_leaf() const
+	{
+		return left_child == nullptr;
+	}
+
+	ssize_t get_index() const
+	{
+		return index;
+	}
+
+	template <typename Func> void traverse(const Func &process)
+	{
+		if (left_child) {
+			left_child->traverse(process);
+		}
+		process(*this);
+		if (right_child) {
+			right_child->traverse(process);
+		}
+	}
+
+	template <typename Func1, typename Func2, typename Func3>
+	void traverse(const Func1 &pre, const Func2 &process, const Func3 &post)
+	{
+		pre(*this);
+		if (left_child) {
+			left_child->traverse(pre, process, post);
+		}
+		process(*this);
+		if (right_child) {
+			right_child->traverse(pre, process, post);
+		}
+		post(*this);
+	}
+
+	std::string to_newick()
+	{
+		auto ret = std::string();
+
+		auto pre = [&ret](const tree_node &self) {
+			if (self.is_branch()) {
+				ret += "(";
+			}
+		};
+		auto process = [&ret](const tree_node &self) {
+			if (self.is_leaf()) {
+				ret += std::to_string(self.get_index());
+			}
+		};
+		auto post = [&ret](const tree_node &self) {
+			if (self.is_branch()) {
+				ret += ")";
+			}
+		};
+
+		traverse(pre, process, post);
+
+		return ret;
+	}
+};
+
 void img_model::parse_param(std::string key, std::string value)
 {
-	if (key == "theta") {
-		this->theta = std::stoul(value);
+	if (key == "img_theta") {
+		this->img_theta = std::stoul(value);
 		return;
 	}
-	if (key == "rho") {
-		this->rho = std::stoul(value);
+	if (key == "img_rho") {
+		this->img_rho = std::stoul(value);
 		return;
 	}
 	evo_model::parse_param(key, value);
@@ -23,10 +112,11 @@ std::string img_model::parameters()
 
 	str << "pangenomesim " << VERSION << "\n\n";
 	str << "full options:\n";
-	str << "--param gene-length=" << loci_length << "\n";
-	str << "--param num-genes=" << num_loci << "\n";
-	str << "--param num-genomes=" << num_genomes << "\n";
-	str << "--out-dir=" << OUT_DIR << "\n";
+	str << "--param gene_length=" << loci_length << "\n";
+	str << "--param num_loci=" << num_loci << "\n";
+	str << "--param num_genomes=" << num_genomes << "\n";
+	str << "--param img_theta=" << img_theta << "\n";
+	str << "--param img_rho=" << img_rho << "\n";
 	str << "--param seed=" << seed << "\n";
 
 	return str.str();
@@ -34,7 +124,23 @@ std::string img_model::parameters()
 
 void img_model::simulate()
 {
-	// STUB
+	// generate coalescent
+	auto n = num_genomes;
+	auto tree = std::vector<tree_node>(2 * n - 1);
+
+	for (size_t i = n; i >= 2; i--) {
+		auto p = 2 * n - i + 1;
+		auto c = rand(0, i);
+		tree[p].set_left(&tree[c]); // also sets [c].parent
+		tree[c] = tree[i];
+
+		auto d = rand(0, i - 1);
+		tree[p].set_right(&tree[d]);
+		tree[d] = tree[p];
+	}
+
+	// create core sequences
+	// generate pan genome and create sequences
 }
 
 // STUB

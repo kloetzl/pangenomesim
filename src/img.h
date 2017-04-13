@@ -5,8 +5,8 @@
 class img_model : public evo_model
 {
   protected:
-	double theta = 0;
-	double rho = 0;
+	double img_theta = 0;
+	double img_rho = 0;
 
   public:
 	img_model() = default;
