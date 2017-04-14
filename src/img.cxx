@@ -1,6 +1,7 @@
 #include "img.h"
 #include "config.h"
 #include "global.h"
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -10,19 +11,26 @@ class tree_node
 	tree_node *left_child = nullptr;
 	tree_node *right_child = nullptr;
 	double up_time = 0.0;
-	ssize_t index = 0; //?
+	ssize_t index = -1; //?
 
   public:
-	static tree_node leaf();
+	static tree_node leaf(ssize_t idx)
+	{
+		auto ret = tree_node();
+		ret.index = idx;
+		return ret;
+	}
 	tree_node() = default;
 	~tree_node() = default;
 
-	void set_left(tree_node *new_left) {
+	void set_left(tree_node *new_left)
+	{
 		left_child = new_left;
 		left_child->parent = this;
 	}
 
-	void set_right(tree_node *new_right) {
+	void set_right(tree_node *new_right)
+	{
 		right_child = new_right;
 		right_child->parent = this;
 	}
@@ -79,6 +87,8 @@ class tree_node
 		auto process = [&ret](const tree_node &self) {
 			if (self.is_leaf()) {
 				ret += std::to_string(self.get_index());
+			} else {
+				ret += ",";
 			}
 		};
 		auto post = [&ret](const tree_node &self) {
@@ -106,7 +116,7 @@ void img_model::parse_param(std::string key, std::string value)
 	evo_model::parse_param(key, value);
 }
 
-std::string img_model::parameters()
+std::string img_model::parameters() const
 {
 	auto str = std::stringstream();
 
@@ -126,18 +136,39 @@ void img_model::simulate()
 {
 	// generate coalescent
 	auto n = num_genomes;
-	auto tree = std::vector<tree_node>(2 * n - 1);
+	auto pool = std::vector<tree_node>(2 * n - 1);
 
-	for (size_t i = n; i >= 2; i--) {
-		auto p = 2 * n - i + 1;
-		auto c = rand(0, i);
-		tree[p].set_left(&tree[c]); // also sets [c].parent
-		tree[c] = tree[i];
-
-		auto d = rand(0, i - 1);
-		tree[p].set_right(&tree[d]);
-		tree[d] = tree[p];
+	for (size_t i = 0; i < n; i++) {
+		pool[i] = tree_node::leaf(i);
 	}
+
+	auto indirect = std::vector<tree_node *>();
+	indirect.reserve(2 * n - 1);
+	for (auto &tn : pool) {
+		indirect.push_back(&tn);
+	}
+
+	auto rand_int = [](size_t lower, size_t upper) {
+		auto rng_help = std::uniform_int_distribution<size_t>(lower, upper - 1);
+		return rng_help(RNG);
+	};
+
+	std::cerr << "n: " << n << std::endl;
+	for (size_t i = 0; i < n - 1; i++) {
+		auto p = n + i;
+		std::cerr << "i: " << i << " p: " << p << std::endl;
+		auto c = rand_int(0, n - i);
+		std::cerr << "c: " << c << std::endl;
+		indirect.at(p)->set_left(indirect[c]); // also sets [c].parent
+		indirect[c] = indirect[n - i - 1];
+
+		auto d = rand_int(0, n - i - 1);
+		std::cerr << "d: " << d << std::endl;
+		indirect[p]->set_right(indirect[d]);
+		indirect[d] = indirect[p];
+	}
+
+	std::cerr << indirect[0]->to_newick() << std::endl;
 
 	// create core sequences
 	// generate pan genome and create sequences

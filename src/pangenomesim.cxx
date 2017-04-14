@@ -1,6 +1,6 @@
 #include "evo_model.h"
 #include "global.h"
-// #include "img.h"
+#include "img.h"
 #include "locus.h"
 #include "simple.h"
 #include "util.h"
@@ -94,8 +94,8 @@ int main(int argc, char *argv[])
 					auto model_name = std::string(optarg);
 					if (model_name == "simple") {
 						model = new simple_model();
-						// } else if (model_name == "IMG") {
-						// model = new img_model();
+					} else if (model_name == "IMG") {
+						model = new img_model();
 					} else {
 						errx(1, "unknown model: %s", model_name.c_str());
 					}

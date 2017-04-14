@@ -12,7 +12,7 @@ class img_model : public evo_model
 	img_model() = default;
 
 	virtual void parse_param(std::string, std::string);
-	std::string parameters();
+	std::string parameters() const;
 	void simulate();
 
 	std::vector<locus> get_reference();
