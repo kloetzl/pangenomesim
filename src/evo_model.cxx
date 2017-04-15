@@ -1,4 +1,5 @@
 #include "evo_model.h"
+#include "global.h"
 #include <exception>
 #include <sstream>
 #include <stdexcept>
@@ -20,6 +21,7 @@ void evo_model::parse_param(std::string key, std::string value)
 	}
 	if (key == "seed") {
 		this->seed = std::stoul(value);
+		RNG = std::default_random_engine(seed);
 		return;
 	}
 	throw std::invalid_argument(std::string("unkown parameter ") + key);

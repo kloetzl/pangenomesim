@@ -5,16 +5,19 @@
 class locus
 {
 	std::string nucl = {};
-	size_t genome_id = 0;
-	size_t locus_id = 0;
+	ssize_t genome_id = -1;
+	ssize_t locus_id = -1;
 
   public:
 	locus() = default;
-	locus(std::string, size_t, size_t);
+	locus(std::string, ssize_t, ssize_t);
+	locus(ssize_t, ssize_t, ssize_t);
 
 	const std::string &get_nucl() const;
-	size_t get_genome_id() const;
-	size_t get_locus_id() const;
+	ssize_t get_genome_id() const;
+	ssize_t get_locus_id() const;
+
+	locus mutate(double) const;
 
 	std::string to_fasta() const
 	{

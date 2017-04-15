@@ -1,6 +1,7 @@
 #include "img.h"
 #include "config.h"
 #include "global.h"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <sstream>
@@ -109,6 +110,21 @@ class tree_node
 		post(*this);
 	}
 
+	template <typename Func1, typename Func2, typename Func3>
+	void traverse(const Func1 &pre, const Func2 &process,
+				  const Func3 &post) const
+	{
+		pre(*this);
+		if (left_child) {
+			left_child->traverse(pre, process, post);
+		}
+		process(*this);
+		if (right_child) {
+			right_child->traverse(pre, process, post);
+		}
+		post(*this);
+	}
+
 	std::string to_newick()
 	{
 		auto ret = std::string();
@@ -171,12 +187,9 @@ std::string img_model::parameters() const
 	return str.str();
 }
 
-void img_model::simulate()
+std::vector<tree_node> coalescent(size_t n)
 {
-	// generate coalescent
-	auto n = num_genomes;
-
-	// Use a pool for allocating the tree nodes. Nodes 0 to n are leafes, the
+	// Use a pool for allocating the tree nodes. Nodes 0 to n are leaves, the
 	// rest are internal nodes, with the last being the root.
 	auto pool = std::vector<tree_node>(2 * n - 1);
 	auto &root = *(pool.end() - 1);
@@ -232,22 +245,80 @@ void img_model::simulate()
 		}
 	});
 
-	std::cout << indirect[0]->to_newick() << std::endl;
+	return pool;
+}
+
+std::vector<locus> seq_from_root(const tree_node &root, size_t sample_size,
+								 size_t loci_length, double rate,
+								 size_t locus_id)
+{
+	// create core sequences
+	auto leaves = std::vector<locus>(sample_size);
+	auto stack = std::vector<locus>();
+	stack.reserve(sample_size);
+	stack.emplace_back(loci_length, -1, locus_id); // random root seq
+	root.traverse(
+		[&stack, &rate](const tree_node &self) {
+			if (self.has_parent()) {
+				auto seq = (stack.end() - 1)->mutate(self.get_time() * rate);
+				stack.push_back(seq);
+			}
+		},
+		[&stack, &leaves](const tree_node &self) {
+			if (self.is_leaf()) {
+				leaves[self.get_index()] = *(stack.end() - 1);
+			}
+		},
+		[&stack](const tree_node &self) {
+			stack.pop_back(); //
+		});
+
+	return leaves;
+}
+
+void img_model::simulate()
+{
+	// generate coalescent
+	auto pool = coalescent(num_genomes);
+	auto &root = *(pool.end() - 1);
+
+	std::cout << root.to_newick() << std::endl;
+
+	auto rate = 0.1;
 
 	// create core sequences
+	for (size_t locus_id = 0; locus_id < img_core_size; locus_id++) {
+		auto leaves =
+			seq_from_root(root, num_genomes, loci_length, rate, locus_id);
+		loci.push_back(leaves);
+	}
+
 	// generate pan genome and create sequences
 }
 
-// STUB
 std::vector<locus> img_model::get_reference()
 {
-	return std::vector<locus>();
+	auto ret = std::vector<locus>();
+	ret.reserve(loci.size());
+
+	for (auto &vloc : loci) {
+		ret.push_back(vloc[0]);
+	}
+
+	return ret;
 }
 
-// STUB
+// at the moment `loci` is core-only
 std::vector<locus> img_model::get_core()
 {
-	return std::vector<locus>();
+	auto ret = std::vector<locus>();
+	ret.reserve(loci.size());
+
+	for (auto &vloc : loci) {
+		ret.push_back(vloc[0]);
+	}
+
+	return ret;
 }
 
 // STUB

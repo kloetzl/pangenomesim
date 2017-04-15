@@ -7,6 +7,8 @@ class img_model : public evo_model
   protected:
 	double img_theta = 0;
 	double img_rho = 0;
+	size_t img_core_size = 4;
+	std::vector<std::vector<locus>> loci = {};
 
   public:
 	img_model() = default;
