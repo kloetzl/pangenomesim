@@ -73,3 +73,8 @@ ssize_t locus::get_locus_id() const
 {
 	return locus_id;
 }
+
+void locus::set_genome_id(ssize_t index)
+{
+	genome_id = index;
+}

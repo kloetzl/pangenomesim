@@ -16,6 +16,7 @@ class locus
 	const std::string &get_nucl() const;
 	ssize_t get_genome_id() const;
 	ssize_t get_locus_id() const;
+	void set_genome_id(ssize_t);
 
 	locus mutate(double) const;
 

@@ -204,11 +204,6 @@ std::vector<tree_node> coalescent(size_t n)
 		indirect.push_back(&tn);
 	}
 
-	auto rand_int = [](size_t lower, size_t upper) {
-		auto rng_help = std::uniform_int_distribution<size_t>(lower, upper - 1);
-		return rng_help(RNG);
-	};
-
 	// simulate topology
 	for (size_t i = 0; i < n - 1; i++) {
 		auto p = n + i;
@@ -223,10 +218,6 @@ std::vector<tree_node> coalescent(size_t n)
 
 	// add times
 	auto t = 0.0;
-	auto rand_exp = [](double arg) {
-		auto rng_dist = std::exponential_distribution<double>(arg);
-		return rng_dist(RNG);
-	};
 
 	// simulate absolute times
 	auto sample_size = n;
@@ -256,7 +247,9 @@ std::vector<locus> seq_from_root(const tree_node &root, size_t sample_size,
 	auto leaves = std::vector<locus>(sample_size);
 	auto stack = std::vector<locus>();
 	stack.reserve(sample_size);
-	stack.emplace_back(loci_length, -1, locus_id); // random root seq
+	auto seq = locus(loci_length, -1, locus_id); // random root seq
+	ref_core.push_back(seq);
+	stack.push_back(seq);
 	root.traverse(
 		[&stack, &rate](const tree_node &self) {
 			if (self.has_parent()) {
@@ -266,7 +259,10 @@ std::vector<locus> seq_from_root(const tree_node &root, size_t sample_size,
 		},
 		[&stack, &leaves](const tree_node &self) {
 			if (self.is_leaf()) {
-				leaves[self.get_index()] = *(stack.end() - 1);
+				// set genome id
+				auto &top = *(stack.end() - 1);
+				top.set_genome_id(self.get_index());
+				leaves[self.get_index()] = top;
 			}
 		},
 		[&stack](const tree_node &self) {
@@ -274,6 +270,16 @@ std::vector<locus> seq_from_root(const tree_node &root, size_t sample_size,
 		});
 
 	return leaves;
+}
+
+auto locus_set_mutate(const std::vector<locus> &set, double rate)
+{
+	auto ret = std::vector<locus>();
+	ret.reserve(set.size());
+	std::transform(
+		set.begin(), set.end(), std::back_inserter(ret),
+		[rate = rate](const locus &loc) { return loc.mutate(rate); });
+	return ret;
 }
 
 void img_model::simulate()
@@ -293,38 +299,107 @@ void img_model::simulate()
 		loci.push_back(leaves);
 	}
 
+	using loci_set = std::vector<locus>;
+
 	// generate pan genome and create sequences
+	auto acc_loci = std::vector<loci_set>(num_genomes);
+	auto acc_locus = std::vector<locus>();
+
+	auto start = loci_set();
+	auto start_size = rand_poisson(img_theta / img_rho);
+	std::cerr << "acc start size: " << start_size << std::endl;
+	start.reserve(start_size);
+	auto locus_counter = size_t(0);
+	std::generate_n(std::back_inserter(start), start_size,
+					[&locus_counter, loci_length = loci_length ]() {
+						return locus(loci_length, -1, locus_counter++);
+					});
+
+	ref_acc = start; // copy
+
+	auto stack = std::vector<loci_set>();
+	stack.reserve(num_genomes);
+	stack.push_back(start);
+
+	root.traverse([&stack, &rate, &that = *this,
+				   &locus_id = locus_counter ](const tree_node &self) {
+		if (!self.has_parent()) {
+			return; // root
+		}
+
+		const auto &top = *(stack.end() - 1);
+		// simulate evolution
+		auto neu = locus_set_mutate(top, rate * self.get_time());
+		auto time = 0.0;
+		while (time < self.get_time()) {
+			std::cerr << time << " " << self.get_time() << std::endl;
+			auto time_to_go = self.get_time() - time;
+			auto time_to_gain = exp(that.img_theta);
+			auto time_to_loss = exp(that.img_rho * neu.size());
+			if (time_to_gain > time_to_go && time_to_loss > time_to_go) {
+				break;
+			}
+			// gain or loss event
+			/* This works because gene-gain/loss is a poisson process
+			 * and as such the individual events are exponentially
+			 * distributed. This means the distribution is memoryless and
+			 * thus past events can be ignored.
+			 */
+			if (time_to_gain < time_to_loss || neu.empty()) {
+				std::cerr << "gain!" << std::endl;
+				neu.emplace_back(that.loci_length, -1, locus_id++);
+				that.ref_acc.push_back(*(neu.end() - 1));
+				time += time_to_gain;
+			} else {
+				std::cerr << "loss!" << std::endl;
+				assert(neu.size() != 0);
+				auto loser = rand_int(0, neu.size());
+				// pick one
+				std::swap(neu[loser], *(neu.end() - 1));
+				neu.pop_back();
+				time += time_to_loss;
+			}
+		}
+
+		stack.push_back(neu);
+	},
+				  [&stack, &acc_loci](const tree_node &self) {
+					  if (self.is_leaf()) {
+						  auto &top = *(stack.end() - 1);
+						  auto index = self.get_index();
+						  std::for_each(top.begin(), top.end(),
+										[&index](locus &loc) {
+											loc.set_genome_id(index);
+										});
+						  acc_loci[index] = top;
+					  }
+				  },
+				  [&stack](const tree_node &self) {
+					  stack.pop_back(); //
+				  });
+
+	assert(stack.empty());
+	acc = acc_loci;
 }
 
 std::vector<locus> img_model::get_reference()
 {
-	auto ret = std::vector<locus>();
-	ret.reserve(loci.size());
+	auto ret = ref_core;
+	ret.reserve(ref_core.size() + ref_acc.size());
 
-	for (auto &vloc : loci) {
-		ret.push_back(vloc[0]);
-	}
+	std::copy(ref_acc.begin(), ref_acc.end(), std::back_inserter(ret));
 
 	return ret;
 }
 
-// at the moment `loci` is core-only
 std::vector<locus> img_model::get_core()
 {
-	auto ret = std::vector<locus>();
-	ret.reserve(loci.size());
-
-	for (auto &vloc : loci) {
-		ret.push_back(vloc[0]);
-	}
-
-	return ret;
+	return ref_core; // implicit copy
 }
 
-// STUB
 std::vector<locus> img_model::get_accessory()
 {
-	return std::vector<locus>();
+	return ref_acc; //implicit copy
 }
 
 // STUB

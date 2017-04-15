@@ -43,3 +43,21 @@ void mkpath(std::string path)
 		err(errno, "%s", path.c_str());
 	}
 }
+
+size_t rand_int(size_t lower, size_t upper)
+{
+	auto rng_help = std::uniform_int_distribution<size_t>(lower, upper - 1);
+	return rng_help(RNG);
+}
+
+double rand_exp(double arg)
+{
+	auto rng_dist = std::exponential_distribution<double>(arg);
+	return rng_dist(RNG);
+}
+
+size_t rand_poisson(double arg)
+{
+	auto rng_dist = std::poisson_distribution<size_t>(arg);
+	return rng_dist(RNG);
+}

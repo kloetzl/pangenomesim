@@ -5,10 +5,13 @@
 class img_model : public evo_model
 {
   protected:
-	double img_theta = 0;
-	double img_rho = 0;
+	double img_theta = 0.1;
+	double img_rho = 0.1;
 	size_t img_core_size = 4;
+	std::vector<locus> ref_core = {};
+	std::vector<locus> ref_acc = {};
 	std::vector<std::vector<locus>> loci = {};
+	std::vector<std::vector<locus>> acc = {};
 
   public:
 	img_model() = default;
