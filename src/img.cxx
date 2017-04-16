@@ -194,9 +194,9 @@ std::vector<tree_node> coalescent(size_t n)
 	auto pool = std::vector<tree_node>(2 * n - 1);
 	auto &root = *(pool.end() - 1);
 
-	for (size_t i = 0; i < n; i++) {
-		pool[i] = tree_node::leaf(i);
-	}
+	generate_i(pool.begin(), n, [](size_t i) {
+		return tree_node::leaf(i); //
+	});
 
 	auto indirect = std::vector<tree_node *>();
 	indirect.reserve(2 * n - 1);
@@ -248,8 +248,8 @@ std::vector<locus> seq_from_root(const tree_node &root, size_t sample_size,
 	auto stack = std::vector<locus>();
 	stack.reserve(sample_size);
 	auto seq = locus(loci_length, -1, locus_id); // random root seq
-	ref_core.push_back(seq);
 	stack.push_back(seq);
+	// ref_core.push_back(seq);
 	root.traverse(
 		[&stack, &rate](const tree_node &self) {
 			if (self.has_parent()) {
@@ -265,7 +265,7 @@ std::vector<locus> seq_from_root(const tree_node &root, size_t sample_size,
 				leaves[self.get_index()] = top;
 			}
 		},
-		[&stack](const tree_node &self) {
+		[&stack](const tree_node &) {
 			stack.pop_back(); //
 		});
 
@@ -276,9 +276,9 @@ auto locus_set_mutate(const std::vector<locus> &set, double rate)
 {
 	auto ret = std::vector<locus>();
 	ret.reserve(set.size());
-	std::transform(
-		set.begin(), set.end(), std::back_inserter(ret),
-		[rate = rate](const locus &loc) { return loc.mutate(rate); });
+	for (const auto &loc: set){
+		ret.push_back(loc.mutate(rate));
+	}
 	return ret;
 }
 
@@ -293,11 +293,9 @@ void img_model::simulate()
 	auto rate = 0.1;
 
 	// create core sequences
-	for (size_t locus_id = 0; locus_id < img_core_size; locus_id++) {
-		auto leaves =
-			seq_from_root(root, num_genomes, loci_length, rate, locus_id);
-		loci.push_back(leaves);
-	}
+	generate_i(std::back_inserter(loci), img_core_size, [&](size_t locus_id) {
+		return seq_from_root(root, num_genomes, loci_length, rate, locus_id);
+	});
 
 	using loci_set = std::vector<locus>;
 
@@ -305,16 +303,15 @@ void img_model::simulate()
 	auto acc_loci = std::vector<loci_set>(num_genomes);
 	auto acc_locus = std::vector<locus>();
 
-	auto start = loci_set();
+	auto start = std::vector<locus>();
 	auto start_size = rand_poisson(img_theta / img_rho);
 	std::cerr << "acc start size: " << start_size << std::endl;
 	start.reserve(start_size);
-	auto locus_counter = size_t(0);
-	std::generate_n(std::back_inserter(start), start_size,
-					[&locus_counter, loci_length = loci_length ]() {
-						return locus(loci_length, -1, locus_counter++);
-					});
+	generate_i(std::back_inserter(start), start_size, [=](size_t locus_id) {
+		return locus(loci_length, -1, locus_id);
+	});
 
+	auto locus_counter = start_size;
 	ref_acc = start; // copy
 
 	auto stack = std::vector<loci_set>();
@@ -364,17 +361,19 @@ void img_model::simulate()
 		stack.push_back(neu);
 	},
 				  [&stack, &acc_loci](const tree_node &self) {
-					  if (self.is_leaf()) {
-						  auto &top = *(stack.end() - 1);
-						  auto index = self.get_index();
-						  std::for_each(top.begin(), top.end(),
-										[&index](locus &loc) {
-											loc.set_genome_id(index);
-										});
-						  acc_loci[index] = top;
+					  if (self.is_branch()) {
+						  return;
 					  }
+
+					  auto &top = *(stack.end() - 1);
+					  auto index = self.get_index();
+					  for (auto &loc : top) {
+						  loc.set_genome_id(index);
+					  }
+
+					  acc_loci[index] = top;
 				  },
-				  [&stack](const tree_node &self) {
+				  [&stack](const tree_node &) {
 					  stack.pop_back(); //
 				  });
 
@@ -399,7 +398,7 @@ std::vector<locus> img_model::get_core()
 
 std::vector<locus> img_model::get_accessory()
 {
-	return ref_acc; //implicit copy
+	return ref_acc; // implicit copy
 }
 
 // STUB
