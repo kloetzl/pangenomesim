@@ -122,7 +122,7 @@ std::vector<locus> simple_model::get_accessory()
 	return ret;
 }
 
-std::vector<locus> simple_model::get_genome(size_t gn)
+std::vector<locus> simple_model::get_genome(ssize_t gn)
 {
 	auto ret = std::vector<locus>();
 
@@ -141,7 +141,7 @@ std::vector<locus> simple_model::get_genome(size_t gn)
 	return ret;
 }
 
-std::vector<locus> simple_model::get_locus(size_t ln)
+std::vector<locus> simple_model::get_locus(ssize_t ln)
 {
 	auto ret = std::vector<locus>();
 	const auto &pg = pan_genes.at(ln);

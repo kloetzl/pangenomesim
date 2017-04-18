@@ -20,12 +20,12 @@ class evo_model
 	virtual std::string parameters() const;
 	virtual void simulate() = 0;
 
-	auto get_num_genomes() const
+	virtual size_t get_num_genomes() const noexcept
 	{
 		return num_genomes;
 	}
 
-	auto get_num_loci() const
+	virtual size_t get_num_loci() const noexcept
 	{
 		return num_loci;
 	}
@@ -33,6 +33,6 @@ class evo_model
 	virtual std::vector<locus> get_reference() = 0;
 	virtual std::vector<locus> get_core() = 0;
 	virtual std::vector<locus> get_accessory() = 0;
-	virtual std::vector<locus> get_genome(size_t) = 0;
-	virtual std::vector<locus> get_locus(size_t) = 0;
+	virtual std::vector<locus> get_genome(ssize_t) = 0;
+	virtual std::vector<locus> get_locus(ssize_t) = 0;
 };

@@ -226,7 +226,7 @@ class tree_node
 		};
 		auto process = [&ret](const tree_node &self) {
 			if (self.is_leaf()) {
-				ret += std::to_string(self.get_index());
+				ret += genome_name(self.get_index());
 			} else {
 				ret += ",";
 			}
@@ -323,7 +323,7 @@ std::vector<tree_node> coalescent(size_t n)
 
 	auto root_it = pool.end() - 1;
 	// compute relative times
-	std::for_ech(pool.begin(), root, [](tree_node &self) {
+	std::for_each(pool.begin(), root_it, [](tree_node &self) {
 		auto branch_length =
 			self.get_parent().get_abs_time() - self.get_abs_time();
 		self.set_time(branch_length);
@@ -336,17 +336,17 @@ std::vector<tree_node> coalescent(size_t n)
  * @brief Simulate sequence evolution from the root.
  * @returns a vector of sequences sorted by genome ID.
  */
-std::vector<locus> seq_from_root(const tree_node &root, size_t sample_size,
-								 size_t loci_length, double rate,
-								 size_t locus_id)
+std::vector<locus> img_model::seq_from_root(const tree_node &root,
+											size_t locus_id, double rate)
 {
 	// create core sequences
+	auto sample_size = num_genomes;
 	auto leaves = std::vector<locus>(sample_size);
 	auto stack = std::vector<locus>();
 	stack.reserve(sample_size);
 	auto seq = locus(loci_length, -1, locus_id); // random root seq
 	stack.push_back(seq);
-	// ref_core.push_back(seq);
+	ref_core.push_back(seq);
 	root.traverse(
 		[&stack, &rate](const tree_node &self) {
 			if (self.has_parent()) {
@@ -393,9 +393,10 @@ void img_model::simulate()
 	auto rate = 0.1;
 
 	// create core sequences
-	generate_i(std::back_inserter(loci), img_core_size, [&](size_t locus_id) {
-		return seq_from_root(root, num_genomes, loci_length, rate, locus_id);
-	});
+	generate_i(std::back_inserter(cor_loci), img_core_size,
+			   [&rate, this, &root](size_t locus_id) {
+				   return seq_from_root(root, locus_id, rate);
+			   });
 
 	using loci_set = std::vector<locus>;
 
@@ -478,7 +479,7 @@ void img_model::simulate()
 				  });
 
 	assert(stack.empty());
-	acc = acc_loci;
+	this->acc_loci = acc_loci;
 }
 
 std::vector<locus> img_model::get_reference()
@@ -501,14 +502,33 @@ std::vector<locus> img_model::get_accessory()
 	return ref_acc; // implicit copy
 }
 
-// STUB
-std::vector<locus> img_model::get_genome(size_t)
+std::vector<locus> img_model::get_genome(ssize_t genome_id)
 {
-	return std::vector<locus>();
+	auto ret = std::vector<locus>();
+	auto inserter = std::back_inserter(ret);
+
+	for (auto &locus_set : cor_loci) {
+		std::copy_if(locus_set.begin(), locus_set.end(), inserter,
+					 [&genome_id](const auto &loc) {
+						 return loc.get_genome_id() == genome_id;
+					 });
+	}
+
+	for (auto &locus_set : acc_loci) {
+		std::copy_if(locus_set.begin(), locus_set.end(), inserter,
+					 [&genome_id](const auto &loc) {
+						 return loc.get_genome_id() == genome_id;
+					 });
+	}
+
+	return ret;
 }
 
-// STUB
-std::vector<locus> img_model::get_locus(size_t)
+std::vector<locus> img_model::get_locus(ssize_t locus_id)
 {
-	return std::vector<locus>();
+	if (locus_id < cor_loci.size()) {
+		return cor_loci[locus_id];
+	} else {
+		return acc_loci.at(locus_id - cor_loci.size()); // may throw
+	}
 }

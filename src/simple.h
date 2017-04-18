@@ -23,8 +23,8 @@ class simple_model : public evo_model
 	std::vector<locus> get_reference();
 	std::vector<locus> get_core();
 	std::vector<locus> get_accessory();
-	std::vector<locus> get_genome(size_t);
-	std::vector<locus> get_locus(size_t);
+	std::vector<locus> get_genome(ssize_t);
+	std::vector<locus> get_locus(ssize_t);
 
   private:
 	std::vector<double> create_distribution();
