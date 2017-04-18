@@ -4,6 +4,9 @@ AM_INIT_AUTOMAKE([-Wall foreign])
 AC_PROG_CXX
 AC_LANG(C++)
 
+AC_CONFIG_MACRO_DIR([m4])
+AX_CXX_COMPILE_STDCXX(14, [noext], [mandatory])
+
 AC_TYPE_SIZE_T
 AC_CHECK_FUNCS([pow])
 AC_CHECK_FUNCS([mkdir])
