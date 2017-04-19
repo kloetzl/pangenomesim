@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 	static const struct option long_options[] = {
 		{"version", no_argument, NULL, 0},
 		{"help", no_argument, NULL, 0},
-		{"param", required_argument, NULL, 0},
+		{"param", required_argument, NULL, 'p'},
 		{"model", required_argument, NULL, 0},
 		{"out-dir", required_argument, NULL, 'o'},
 		{"verbose", no_argument, NULL, 'v'},
@@ -63,33 +63,6 @@ int main(int argc, char *argv[])
 					usage(EXIT_SUCCESS);
 				} else if (option_string == "version") {
 					version();
-				} else if (option_string == "param") {
-					if (!model) {
-						errx(1, "set an evolutionary model via --model first");
-					}
-
-					auto arg_string = std::string(optarg);
-
-					// implement `getsubsopt(3)` like functionality
-					auto pattern = std::string("^(\\w+)(?:=(\\w+))?,?");
-					auto r = std::regex(pattern);
-
-					auto m = std::smatch();
-					while (std::regex_search(arg_string, m, r)) {
-						auto key = m[1];
-						auto value = m.size() == 3 ? m[2] : std::string();
-						std::cerr << key << ":" << value << std::endl;
-
-						// may throw
-						model->parse_param(key, value);
-						arg_string = m.suffix();
-					}
-
-					if (!arg_string.empty()) {
-						errx(1, "invalid parameter %s", optarg);
-					}
-
-					break;
 				} else if (option_string == "model") {
 					auto model_name = std::string(optarg);
 					if (model_name == "simple") {
@@ -106,6 +79,33 @@ int main(int argc, char *argv[])
 			}
 			case 'o': {
 				OUT_DIR = std::string(optarg) + "/";
+				break;
+			}
+			case 'p': {
+				if (!model) {
+					errx(1, "set an evolutionary model via --model first");
+				}
+
+				auto arg_string = std::string(optarg);
+
+				// implement `getsubsopt(3)` like functionality
+				auto pattern = std::string("^(\\w+)(?:=([a-z_0-9.]+))?,?");
+				auto r = std::regex(pattern);
+
+				auto m = std::smatch();
+				while (std::regex_search(arg_string, m, r)) {
+					auto key = m[1];
+					auto value = m.size() == 3 ? m[2] : std::string();
+
+					// may throw
+					model->parse_param(key, value);
+					arg_string = m.suffix();
+				}
+
+				if (!arg_string.empty()) {
+					errx(1, "invalid parameter %s", optarg);
+				}
+
 				break;
 			}
 			case 'v': {
@@ -181,6 +181,39 @@ int main(int argc, char *argv[])
 		}
 
 		check_io(fasta_file, file_name);
+	}
+
+	// compute gene frequency spektrum
+	{
+		auto num_loci = model->get_num_loci();
+		std::cerr << num_loci << std::endl;
+		auto gfs = std::vector<size_t>(model->get_num_genomes() + 1);
+		for (ssize_t i = 0; i < num_loci; i++) {
+			auto that = model->get_locus(i);
+			gfs.at(that.size())++;
+		}
+
+		auto file_name = OUT_DIR + "genefrequency.gfs";
+		auto gfs_file = std::ofstream(file_name);
+		check_io(gfs_file, file_name);
+
+		for (auto it = gfs.begin() + 1; it != gfs.end(); it++) {
+			gfs_file << *it << " ";
+		}
+		gfs_file << std::endl;
+
+		check_io(gfs_file, file_name);
+	}
+
+	if (dynamic_cast<img_model *>(model) != nullptr) {
+		auto file_name = OUT_DIR + "coalescent.newick";
+		auto tree_file = std::ofstream(file_name);
+		check_io(tree_file, file_name);
+
+		tree_file << dynamic_cast<img_model *>(model)->get_coalescent()
+				  << std::endl;
+
+		check_io(tree_file, file_name);
 	}
 
 	delete model;
