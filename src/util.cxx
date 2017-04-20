@@ -15,7 +15,7 @@ std::string genome_name(ssize_t genome_number)
 {
 	auto ret = std::string("genome");
 	auto num = genome_number == -1 ? std::string("ref")
-								   : std::to_string(genome_number);
+								   : std::to_string(genome_number + 1);
 	// TODO: get number of genomes?
 	auto max_digits = std::ceil(std::log10(/*NUM_GENOMES*/ 100 + 1));
 	auto zeros = std::string(max_digits - num.size(), '0');

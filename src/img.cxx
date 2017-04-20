@@ -170,10 +170,10 @@ void img_model::simulate()
 	start.reserve(start_size);
 	acc_loci.resize(start_size);
 	generate_i(std::back_inserter(start), start_size, [=](size_t locus_id) {
-		return locus(loci_length, -1, locus_id);
+		return locus(loci_length, -1, locus_id + img_core_size);
 	});
 
-	auto locus_counter = start_size;
+	auto locus_id = start_size + img_core_size;
 	ref_acc = start; // copy
 
 	auto stack = std::vector<loci_set>();
@@ -182,7 +182,7 @@ void img_model::simulate()
 
 	root.traverse(
 		[&stack, &rate, &that = *this, &acc_loci,
-		 &locus_id = locus_counter ](const tree_node &self) {
+		 &locus_id ](const tree_node &self) {
 			if (!self.has_parent()) {
 				return; // root
 			}
@@ -221,7 +221,8 @@ void img_model::simulate()
 
 			stack.push_back(neu);
 		},
-		[&stack, &acc_loci](const tree_node &self) {
+		[&stack, &acc_loci,
+		 img_core_size = this->img_core_size ](const tree_node &self) {
 			if (self.is_branch()) {
 				return;
 			}
@@ -230,7 +231,7 @@ void img_model::simulate()
 			auto genome_id = self.get_index();
 			for (auto &loc : top) {
 				loc.set_genome_id(genome_id);
-				acc_loci[loc.get_locus_id()].push_back(loc);
+				acc_loci[loc.get_locus_id() - img_core_size].push_back(loc);
 			}
 		},
 		[&stack](const tree_node &) {
@@ -238,6 +239,20 @@ void img_model::simulate()
 		});
 
 	assert(stack.empty());
+
+	// filter out empty loci which were fully lost
+	assert(ref_acc.size() == acc_loci.size());
+	auto it =
+		remove_if_i(ref_acc.begin(), ref_acc.end(),
+					[&acc_loci](size_t i) { return acc_loci.at(i).empty(); });
+	ref_acc.erase(it, ref_acc.end());
+
+	auto is_empty = [](const std::vector<locus> &set) { return set.empty(); };
+
+	// erase-remove-idiom
+	auto empty_it = std::remove_if(acc_loci.begin(), acc_loci.end(), is_empty);
+	acc_loci.erase(empty_it, acc_loci.end());
+
 	this->acc_loci = acc_loci;
 }
 
@@ -283,12 +298,12 @@ std::vector<locus> img_model::get_genome(ssize_t genome_id)
 	return ret;
 }
 
-std::vector<locus> img_model::get_locus(ssize_t locus_id)
+std::vector<locus> img_model::get_locus(ssize_t some_number)
 {
-	if (locus_id < cor_loci.size()) {
-		return cor_loci[locus_id];
+	if (some_number < cor_loci.size()) {
+		return cor_loci[some_number];
 	} else {
-		return acc_loci.at(locus_id - cor_loci.size()); // may throw
+		return acc_loci.at(some_number - cor_loci.size()); // may throw
 	}
 }
 

@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 
 	// print derived genomes
 	for (ssize_t gn = 0; gn < model->get_num_genomes(); gn++) {
-		auto file_name = OUT_DIR + genome_name(gn + 1) + ".fasta";
+		auto file_name = OUT_DIR + genome_name(gn) + ".fasta";
 		auto fasta_file = std::ofstream(file_name);
 		check_io(fasta_file, file_name);
 
@@ -186,7 +186,6 @@ int main(int argc, char *argv[])
 	// compute gene frequency spektrum
 	{
 		auto num_loci = model->get_num_loci();
-		std::cerr << num_loci << std::endl;
 		auto gfs = std::vector<size_t>(model->get_num_genomes() + 1);
 		for (ssize_t i = 0; i < num_loci; i++) {
 			auto that = model->get_locus(i);
