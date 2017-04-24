@@ -21,7 +21,23 @@ void img_model::parse_param(std::string key, std::string value)
 		this->img_core_size = std::stoul(value);
 		return;
 	}
-	evo_model::parse_param(key, value);
+	if (key == "loci_length") {
+		this->loci_length = std::stoul(value);
+		return;
+	}
+	if (key == "num_loci") {
+		this->num_loci = std::stoul(value);
+		return;
+	}
+	if (key == "num_genomes") {
+		this->num_genomes = std::stoul(value);
+		return;
+	}
+	if (key == "seed") {
+		this->seed = std::stoul(value);
+		RNG = std::default_random_engine(seed);
+		return;
+	}
 }
 
 std::string img_model::parameters() const

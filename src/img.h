@@ -1,13 +1,18 @@
 #pragma once
-#include "evo_model.h"
+#include "locus.h"
 #include <cassert>
 #include <string>
+#include <vector>
 
 class tree_node;
 
-class img_model : public evo_model
+class img_model
 {
   protected:
+	size_t loci_length = 100;
+	size_t num_loci = 5;
+	size_t num_genomes = 3;
+	size_t seed = 1729;
 	double img_theta = 0.1;
 	double img_rho = 0.1;
 	size_t img_core_size = 4;
@@ -19,6 +24,7 @@ class img_model : public evo_model
 
   public:
 	img_model() = default;
+	virtual ~img_model() = default;
 
 	virtual void parse_param(std::string, std::string);
 	std::string parameters() const;
@@ -35,6 +41,11 @@ class img_model : public evo_model
 	virtual size_t get_num_loci() const noexcept
 	{
 		return cor_loci.size() + acc_loci.size();
+	}
+
+	virtual size_t get_num_genomes() const noexcept
+	{
+		return num_genomes;
 	}
 
   private:

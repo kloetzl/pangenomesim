@@ -1,8 +1,6 @@
-#include "evo_model.h"
 #include "global.h"
 #include "img.h"
 #include "locus.h"
-#include "simple.h"
 #include "util.h"
 #include <algorithm>
 #include <cstdio>
@@ -38,14 +36,12 @@ int main(int argc, char *argv[])
 		{"version", no_argument, NULL, 0},
 		{"help", no_argument, NULL, 0},
 		{"param", required_argument, NULL, 'p'},
-		{"model", required_argument, NULL, 0},
 		{"out-dir", required_argument, NULL, 'o'},
 		{"verbose", no_argument, NULL, 'v'},
 		{0, 0, 0, 0} // no comment
 	};
 
-	// polymorphism, yay!
-	evo_model *model = nullptr;
+	auto model = img_model();
 
 	while (true) {
 		int option_index = 0;
@@ -63,15 +59,6 @@ int main(int argc, char *argv[])
 					usage(EXIT_SUCCESS);
 				} else if (option_string == "version") {
 					version();
-				} else if (option_string == "model") {
-					auto model_name = std::string(optarg);
-					if (model_name == "simple") {
-						model = new simple_model();
-					} else if (model_name == "IMG") {
-						model = new img_model();
-					} else {
-						errx(1, "unknown model: %s", model_name.c_str());
-					}
 				} else {
 					return 1;
 				}
@@ -82,10 +69,6 @@ int main(int argc, char *argv[])
 				break;
 			}
 			case 'p': {
-				if (!model) {
-					errx(1, "set an evolutionary model via --model first");
-				}
-
 				auto arg_string = std::string(optarg);
 
 				// implement `getsubsopt(3)` like functionality
@@ -98,7 +81,7 @@ int main(int argc, char *argv[])
 					auto value = m.size() == 3 ? m[2] : std::string();
 
 					// may throw
-					model->parse_param(key, value);
+					model.parse_param(key, value);
 					arg_string = m.suffix();
 				}
 
@@ -120,10 +103,7 @@ int main(int argc, char *argv[])
 	// create ouput directory
 	mkpath(OUT_DIR);
 
-	if (!model) {
-		errx(1, "no evolutionary model selected");
-	}
-	model->simulate(); // do the work
+	model.simulate(); // do the work
 
 	auto check_io = [](const std::ofstream &o, const std::string &n) {
 		if (!o) {
@@ -137,7 +117,7 @@ int main(int argc, char *argv[])
 
 	rep_file << "pangenomesim " VERSION << "\n\n";
 	rep_file << "full options:\n";
-	rep_file << model->parameters() << std::endl;
+	rep_file << model.parameters() << std::endl;
 
 	check_io(rep_file, rep_file_name);
 
@@ -152,15 +132,15 @@ int main(int argc, char *argv[])
 		check_io(cor_fasta_file, cor_file_name);
 		check_io(acc_fasta_file, acc_file_name);
 
-		for (const auto &loc : model->get_reference()) {
+		for (const auto &loc : model.get_reference()) {
 			ref_fasta_file << loc.to_fasta();
 		}
 
-		for (const auto &loc : model->get_core()) {
+		for (const auto &loc : model.get_core()) {
 			cor_fasta_file << loc.to_fasta();
 		}
 
-		for (const auto &loc : model->get_accessory()) {
+		for (const auto &loc : model.get_accessory()) {
 			acc_fasta_file << loc.to_fasta();
 		}
 
@@ -170,12 +150,12 @@ int main(int argc, char *argv[])
 	}
 
 	// print derived genomes
-	for (ssize_t gn = 0; gn < model->get_num_genomes(); gn++) {
+	for (ssize_t gn = 0; gn < model.get_num_genomes(); gn++) {
 		auto file_name = OUT_DIR + genome_name(gn) + ".fasta";
 		auto fasta_file = std::ofstream(file_name);
 		check_io(fasta_file, file_name);
 
-		auto loci = model->get_genome(gn);
+		auto loci = model.get_genome(gn);
 		for (const auto &loc : loci) {
 			fasta_file << loc.to_fasta();
 		}
@@ -185,10 +165,10 @@ int main(int argc, char *argv[])
 
 	// compute gene frequency spektrum
 	{
-		auto num_loci = model->get_num_loci();
-		auto gfs = std::vector<size_t>(model->get_num_genomes() + 1);
+		auto num_loci = model.get_num_loci();
+		auto gfs = std::vector<size_t>(model.get_num_genomes() + 1);
 		for (ssize_t i = 0; i < num_loci; i++) {
-			auto that = model->get_locus(i);
+			auto that = model.get_locus(i);
 			gfs.at(that.size())++;
 		}
 
@@ -204,18 +184,14 @@ int main(int argc, char *argv[])
 		check_io(gfs_file, file_name);
 	}
 
-	if (dynamic_cast<img_model *>(model) != nullptr) {
-		auto file_name = OUT_DIR + "coalescent.newick";
-		auto tree_file = std::ofstream(file_name);
-		check_io(tree_file, file_name);
+	auto file_name = OUT_DIR + "coalescent.newick";
+	auto tree_file = std::ofstream(file_name);
+	check_io(tree_file, file_name);
 
-		tree_file << dynamic_cast<img_model *>(model)->get_coalescent()
-				  << std::endl;
+	tree_file << model.get_coalescent() << std::endl;
 
-		check_io(tree_file, file_name);
-	}
+	check_io(tree_file, file_name);
 
-	delete model;
 	return 0;
 }
 
