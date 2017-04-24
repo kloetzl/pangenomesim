@@ -1,6 +1,7 @@
 #pragma once
 #include "util.h"
 #include <string>
+#include <vector>
 
 class locus
 {
@@ -19,6 +20,7 @@ class locus
 	void set_genome_id(ssize_t);
 
 	locus mutate(double) const;
+	static std::vector<locus> mutate_set(const std::vector<locus>&, double);
 
 	std::string to_fasta() const
 	{

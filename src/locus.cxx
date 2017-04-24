@@ -3,6 +3,7 @@
 #include <functional>
 #include <random>
 #include <string>
+#include <vector>
 
 locus::locus(std::string n, ssize_t gid, ssize_t lid)
 	: nucl(n), genome_id(gid), locus_id(lid)
@@ -58,6 +59,17 @@ locus locus::mutate(double rate) const
 
 	return ret;
 }
+
+std::vector<locus> locus::mutate_set(const std::vector<locus>& set, double rate)
+{
+	auto ret = std::vector<locus>();
+	ret.reserve(set.size());
+	for (const auto &loc : set) {
+		ret.push_back(loc.mutate(rate));
+	}
+	return ret;
+}
+
 
 const std::string &locus::get_nucl() const
 {

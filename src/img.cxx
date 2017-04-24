@@ -25,10 +25,6 @@ void img_model::parse_param(std::string key, std::string value)
 		this->loci_length = std::stoul(value);
 		return;
 	}
-	if (key == "num_loci") {
-		this->num_loci = std::stoul(value);
-		return;
-	}
 	if (key == "num_genomes") {
 		this->num_genomes = std::stoul(value);
 		return;
@@ -47,7 +43,6 @@ std::string img_model::parameters() const
 	str << "pangenomesim " << VERSION << "\n\n";
 	str << "full options:\n";
 	str << "--param loci_length=" << loci_length << "\n";
-	str << "--param num_loci=" << num_loci << "\n";
 	str << "--param num_genomes=" << num_genomes << "\n";
 	str << "--param img_theta=" << img_theta << "\n";
 	str << "--param img_rho=" << img_rho << "\n";
@@ -148,16 +143,6 @@ std::vector<locus> img_model::seq_from_root(const tree_node &root,
 	return leaves;
 }
 
-auto locus_set_mutate(const std::vector<locus> &set, double rate)
-{
-	auto ret = std::vector<locus>();
-	ret.reserve(set.size());
-	for (const auto &loc : set) {
-		ret.push_back(loc.mutate(rate));
-	}
-	return ret;
-}
-
 /**
  * @brief do the work.
  */
@@ -205,7 +190,7 @@ void img_model::simulate()
 
 			const auto &top = *(stack.end() - 1);
 			// simulate evolution
-			auto neu = locus_set_mutate(top, rate * self.get_time());
+			auto neu = locus::mutate_set(top, rate * self.get_time());
 			auto time = 0.0;
 			while (time < self.get_time()) {
 				auto time_to_go = self.get_time() - time;
@@ -317,7 +302,7 @@ std::vector<locus> img_model::get_genome(ssize_t genome_id)
 std::vector<locus> img_model::get_locus(ssize_t some_number)
 {
 	if (some_number < cor_loci.size()) {
-		return cor_loci[some_number];
+		return cor_loci.at(some_number); // throws on some_number < 0
 	} else {
 		return acc_loci.at(some_number - cor_loci.size()); // may throw
 	}

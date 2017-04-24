@@ -10,7 +10,6 @@ class img_model
 {
   protected:
 	size_t loci_length = 100;
-	size_t num_loci = 5;
 	size_t num_genomes = 3;
 	size_t seed = 1729;
 	double img_theta = 0.1;
