@@ -26,7 +26,6 @@ void usage(int);
 void version();
 
 std::string OUT_DIR = std::string("./");
-size_t SEED = 1729;
 std::default_random_engine RNG;
 bool VERBOSE = false;
 
