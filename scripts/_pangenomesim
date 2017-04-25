@@ -1,19 +1,18 @@
 #compdef pangenomesim
 
-integer ret=1
-local -a args
-args+=(
-	'(-e --evo-distance)'{-e+,--evo-distance=}'[Set the evolutionary distance]:float:'
-	'(-l --gene-length)'{-l+,--gene-length=}'[Set the gene length]:num:'
-	'(-m --num-genes)'{-m+,--num-genes=}'[Set the number of genes]:num:'
-	'(-n --num-genomes)'{-n+,--num-genomes=}'[Set the number of genomes]:num:'
-	'(-o --out-dir)'{-o+,--out-dir=}'[The directory to write files to]:dir:_files -/'
-	'(-p --probability)'{-p+,--probability=}'[Set simulation parameter]:float:'
-	'(-s --seed)'{-s+,--seed=}'[Seed for the random number generator]:num:'
-	'(-t --threshold)'{-t+,--threshold=}'[Set the relative core genome size]:float:'
-	'(-v --verbose)'{-v,--verbose}'[Print additional information]'
-	'(-)--help[Display help and exit]'
-	'(-)--version[Output version information and exit]'
-)
-_arguments $args[@] && ret=0
-return ret
+_pangenomesim() {
+	integer ret=1
+	local info="--help --version"
+	local -a args
+	args+=(
+		"($info -o --out-dir)"{-o+,--out-dir=}'[The directory to write files to]:dir:_files -/'
+		"($info -v --verbose)"{-v,--verbose}'[Print additional information]'
+		"($info -p --param)*"{-p+,--param=}'[Set simulation parameter]:string:'
+		'(-)--help[Display help and exit]'
+		'(-)--version[Output version information and exit]'
+	)
+	_arguments $args[@] && ret=0
+	return ret
+}
+
+_pangenomesim
