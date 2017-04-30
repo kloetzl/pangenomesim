@@ -34,6 +34,10 @@ void img_model::parse_param(std::string key, std::string value)
 		RNG = std::default_random_engine(seed);
 		return;
 	}
+	if (key == "mut_rate") {
+		this->mut_rate = std::stof(value);
+		return;
+	}
 }
 
 std::string img_model::parameters() const
@@ -46,6 +50,7 @@ std::string img_model::parameters() const
 	str << "--param num_genomes=" << num_genomes << "\n";
 	str << "--param img_theta=" << img_theta << "\n";
 	str << "--param img_rho=" << img_rho << "\n";
+	str << "--param mut_rate=" << mut_rate << "\n";
 	str << "--param seed=" << seed << "\n";
 
 	return str.str();
@@ -111,7 +116,7 @@ std::vector<tree_node> create_coalescent(size_t n)
  * @returns a vector of sequences sorted by genome ID.
  */
 std::vector<locus> img_model::seq_from_root(const tree_node &root,
-											size_t locus_id, double rate)
+											size_t locus_id)
 {
 	// create core sequences
 	auto sample_size = num_genomes;
@@ -122,9 +127,9 @@ std::vector<locus> img_model::seq_from_root(const tree_node &root,
 	stack.push_back(seq);
 	ref_core.push_back(seq);
 	root.traverse(
-		[&stack, &rate](const tree_node &self) {
+		[&stack, this](const tree_node &self) {
 			if (self.has_parent()) {
-				auto seq = top(stack).mutate(self.get_time() * rate);
+				auto seq = top(stack).mutate(self.get_time() * mut_rate);
 				stack.push_back(seq);
 			}
 		},
@@ -152,12 +157,10 @@ void img_model::simulate()
 	auto &pool = coalescent;
 	auto &root = top(pool);
 
-	auto rate = 0.01;
-
 	// create core sequences
 	generate_i(std::back_inserter(cor_loci), img_core_size,
-			   [&rate, this, &root](size_t locus_id) {
-				   return seq_from_root(root, locus_id, rate);
+			   [this, &root](size_t locus_id) {
+				   return seq_from_root(root, locus_id);
 			   });
 
 	// generate pan genome and create sequences
@@ -179,14 +182,14 @@ void img_model::simulate()
 	stack.push_back(start);
 
 	root.traverse(
-		[&stack, &rate, &that = *this, &acc_loci,
-		 &locus_id ](const tree_node &self) {
+		[&stack, &that = *this, &acc_loci, &locus_id ](const tree_node &self) {
 			if (!self.has_parent()) {
 				return; // root
 			}
 
 			// simulate evolution
-			auto neu = locus::vector_mutate(top(stack), rate * self.get_time());
+			auto neu = locus::vector_mutate(top(stack),
+											that.mut_rate * self.get_time());
 			auto time = 0.0;
 			while (time < self.get_time()) {
 				auto time_to_go = self.get_time() - time;

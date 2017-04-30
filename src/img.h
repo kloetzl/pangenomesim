@@ -15,6 +15,7 @@ class img_model
 	double img_theta = 0.1;
 	double img_rho = 0.1;
 	size_t img_core_size = 4;
+	double mut_rate = 0.01;
 	std::vector<locus> ref_core = {};
 	std::vector<locus> ref_acc = {};
 	std::vector<std::vector<locus>> cor_loci = {};
@@ -48,8 +49,7 @@ class img_model
 	}
 
   private:
-	std::vector<locus> seq_from_root(const tree_node &root, size_t locus_id,
-									 double rate);
+	std::vector<locus> seq_from_root(const tree_node &root, size_t locus_id);
 };
 
 class tree_node

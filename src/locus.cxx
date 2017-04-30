@@ -60,7 +60,8 @@ locus locus::mutate(double rate) const
 	return ret;
 }
 
-std::vector<locus> locus::vector_mutate(const std::vector<locus> &set, double rate)
+std::vector<locus> locus::vector_mutate(const std::vector<locus> &set,
+										double rate)
 {
 	auto ret = std::vector<locus>();
 	ret.reserve(set.size());
