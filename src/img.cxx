@@ -160,10 +160,8 @@ void img_model::simulate()
 				   return seq_from_root(root, locus_id, rate);
 			   });
 
-	using loci_set = std::vector<locus>;
-
 	// generate pan genome and create sequences
-	auto acc_loci = std::vector<loci_set>();
+	auto acc_loci = std::vector<std::vector<locus>>();
 
 	auto start = std::vector<locus>();
 	auto start_size = rand_poisson(img_theta / img_rho);
@@ -176,7 +174,7 @@ void img_model::simulate()
 	auto locus_id = start_size + img_core_size;
 	ref_acc = start; // copy
 
-	auto stack = std::vector<loci_set>();
+	auto stack = std::vector<std::vector<locus>>();
 	stack.reserve(num_genomes);
 	stack.push_back(start);
 
@@ -188,7 +186,7 @@ void img_model::simulate()
 			}
 
 			// simulate evolution
-			auto neu = locus::mutate_set(top(stack), rate * self.get_time());
+			auto neu = locus::vector_mutate(top(stack), rate * self.get_time());
 			auto time = 0.0;
 			while (time < self.get_time()) {
 				auto time_to_go = self.get_time() - time;
