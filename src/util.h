@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <string>
+#include <vector>
 
 std::string genome_name(ssize_t);
 void mkpath(std::string);
@@ -40,4 +41,15 @@ ForwardIt remove_if_i(ForwardIt first, ForwardIt last, UnaryPredicate p)
 		for (ForwardIt i = first; ++i != last;)
 			if (!p(std::distance(very_first, i))) *first++ = std::move(*i);
 	return first;
+}
+
+// technically top could be `noexcept`.
+template <typename T> T &top(std::vector<T> &v)
+{
+	return *(v.end() - 1);
+}
+
+template <typename T> const T &top(const std::vector<T> &v)
+{
+	return *(v.end() - 1);
 }

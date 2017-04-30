@@ -124,16 +124,15 @@ std::vector<locus> img_model::seq_from_root(const tree_node &root,
 	root.traverse(
 		[&stack, &rate](const tree_node &self) {
 			if (self.has_parent()) {
-				auto seq = (stack.end() - 1)->mutate(self.get_time() * rate);
+				auto seq = top(stack).mutate(self.get_time() * rate);
 				stack.push_back(seq);
 			}
 		},
 		[&stack, &leaves](const tree_node &self) {
 			if (self.is_leaf()) {
 				// set genome id
-				auto &top = *(stack.end() - 1);
-				top.set_genome_id(self.get_index());
-				leaves[self.get_index()] = top;
+				top(stack).set_genome_id(self.get_index());
+				leaves[self.get_index()] = top(stack);
 			}
 		},
 		[&stack](const tree_node &) {
@@ -151,7 +150,7 @@ void img_model::simulate()
 	// generate coalescent
 	coalescent = create_coalescent(num_genomes);
 	auto &pool = coalescent;
-	auto &root = *(pool.end() - 1);
+	auto &root = top(pool);
 
 	auto rate = 0.01;
 
@@ -188,9 +187,8 @@ void img_model::simulate()
 				return; // root
 			}
 
-			const auto &top = *(stack.end() - 1);
 			// simulate evolution
-			auto neu = locus::mutate_set(top, rate * self.get_time());
+			auto neu = locus::mutate_set(top(stack), rate * self.get_time());
 			auto time = 0.0;
 			while (time < self.get_time()) {
 				auto time_to_go = self.get_time() - time;
@@ -208,13 +206,13 @@ void img_model::simulate()
 				if (time_to_gain < time_to_loss || neu.empty()) {
 					neu.emplace_back(that.loci_length, -1, locus_id++);
 					acc_loci.resize(acc_loci.size() + 1);
-					that.ref_acc.push_back(*(neu.end() - 1));
+					that.ref_acc.push_back(top(neu));
 					time += time_to_gain;
 				} else {
 					assert(neu.size() != 0);
 					auto loser = rand_int(0, neu.size());
 					// pick one
-					std::swap(neu[loser], *(neu.end() - 1));
+					std::swap(neu[loser], top(neu));
 					neu.pop_back();
 					time += time_to_loss;
 				}
@@ -228,9 +226,8 @@ void img_model::simulate()
 				return;
 			}
 
-			auto &top = *(stack.end() - 1);
 			auto genome_id = self.get_index();
-			for (auto &loc : top) {
+			for (auto &loc : top(stack)) {
 				loc.set_genome_id(genome_id);
 				acc_loci[loc.get_locus_id() - img_core_size].push_back(loc);
 			}
@@ -310,5 +307,5 @@ std::vector<locus> img_model::get_locus(ssize_t some_number)
 
 std::string img_model::get_coalescent()
 {
-	return (coalescent.end() - 1)->to_newick();
+	return top(coalescent).to_newick();
 }
