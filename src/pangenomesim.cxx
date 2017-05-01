@@ -104,21 +104,17 @@ int main(int argc, char *argv[])
 
 	model.simulate(); // do the work
 
-	auto check_io = [](const std::ofstream &o, const std::string &n) {
-		if (!o) {
-			err(errno, "%s: couldn't write to file", n.c_str());
-		}
-	};
+	{ // reproducible information
+		auto rep_file_name = OUT_DIR + "reproducible.seed";
+		auto rep_file = std::ofstream(rep_file_name);
+		check_io(rep_file, rep_file_name);
 
-	auto rep_file_name = OUT_DIR + "reproducible.seed";
-	auto rep_file = std::ofstream(rep_file_name);
-	check_io(rep_file, rep_file_name);
+		rep_file << "pangenomesim " VERSION << "\n\n";
+		rep_file << "full options:\n";
+		rep_file << model.parameters() << std::endl;
 
-	rep_file << "pangenomesim " VERSION << "\n\n";
-	rep_file << "full options:\n";
-	rep_file << model.parameters() << std::endl;
-
-	check_io(rep_file, rep_file_name);
+		check_io(rep_file, rep_file_name);
+	}
 
 	{ // print reference, core-, and accessory-genome
 		auto ref_file_name = OUT_DIR + "ref.fasta";
@@ -149,7 +145,7 @@ int main(int argc, char *argv[])
 	}
 
 	// print derived genomes
-	for (ssize_t gn = 0; gn < model.get_num_genomes(); gn++) {
+	for (size_t gn = 0; gn < model.get_num_genomes(); gn++) {
 		auto file_name = OUT_DIR + genome_name(gn) + ".fasta";
 		auto fasta_file = std::ofstream(file_name);
 		check_io(fasta_file, file_name);
@@ -162,11 +158,10 @@ int main(int argc, char *argv[])
 		check_io(fasta_file, file_name);
 	}
 
-	// compute gene frequency spektrum
-	{
+	{ // compute gene frequency spectrum
 		auto num_loci = model.get_num_loci();
 		auto gfs = std::vector<size_t>(model.get_num_genomes() + 1);
-		for (ssize_t i = 0; i < num_loci; i++) {
+		for (size_t i = 0; i < num_loci; i++) {
 			auto that = model.get_locus(i);
 			gfs.at(that.size())++;
 		}
@@ -183,13 +178,15 @@ int main(int argc, char *argv[])
 		check_io(gfs_file, file_name);
 	}
 
-	auto file_name = OUT_DIR + "coalescent.newick";
-	auto tree_file = std::ofstream(file_name);
-	check_io(tree_file, file_name);
+	{ // coalescent
+		auto file_name = OUT_DIR + "coalescent.newick";
+		auto tree_file = std::ofstream(file_name);
+		check_io(tree_file, file_name);
 
-	tree_file << model.get_coalescent() << std::endl;
+		tree_file << model.get_coalescent() << std::endl;
 
-	check_io(tree_file, file_name);
+		check_io(tree_file, file_name);
+	}
 
 	return 0;
 }
@@ -200,7 +197,7 @@ void usage(int exit_code)
 		"usage: pangenomesim [OPTIONS...]\n"
 		"Simulate a pan-genome.\n\n"
 		"  -o, --out-dir DIR        The directory to write files to\n"
-		"      --param KEY=VALUE    Set simulation parameter\n"
+		"  -p, --param KEY=VALUE    Set simulation parameter\n"
 		"  -v, --verbose            Print additional information\n"
 		"      --help               Display help and exit\n"
 		"      --version            Output version information and exit\n" //

@@ -5,6 +5,7 @@
 
 std::string genome_name(ssize_t);
 void mkpath(std::string);
+void check_io(const std::ofstream &o, const std::string &n);
 
 size_t rand_int(size_t lower, size_t upper);
 double rand_exp(double arg);

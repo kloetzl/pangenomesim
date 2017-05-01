@@ -1,6 +1,7 @@
 #include "util.h"
 #include "global.h"
 #include <cmath>
+#include <fstream>
 #include <string>
 
 extern "C" {
@@ -60,4 +61,11 @@ size_t rand_poisson(double arg)
 {
 	auto rng_dist = std::poisson_distribution<size_t>(arg);
 	return rng_dist(RNG);
+}
+
+void check_io(const std::ofstream &o, const std::string &n)
+{
+	if (!o.good()) {
+		err(errno, "%s: couldn't write to file", n.c_str());
+	}
 }

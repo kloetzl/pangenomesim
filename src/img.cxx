@@ -44,8 +44,6 @@ std::string img_model::parameters() const
 {
 	auto str = std::stringstream();
 
-	str << "pangenomesim " << VERSION << "\n\n";
-	str << "full options:\n";
 	str << "--param loci_length=" << loci_length << "\n";
 	str << "--param num_genomes=" << num_genomes << "\n";
 	str << "--param img_theta=" << img_theta << "\n";
@@ -103,9 +101,7 @@ std::vector<tree_node> create_coalescent(size_t n)
 	auto root_it = pool.end() - 1;
 	// compute relative times
 	std::for_each(pool.begin(), root_it, [](tree_node &self) {
-		auto branch_length =
-			self.get_parent().get_abs_time() - self.get_abs_time();
-		self.set_time(branch_length);
+		self.compute_rel_time(); //
 	});
 
 	return pool;
@@ -154,8 +150,7 @@ void img_model::simulate()
 {
 	// generate coalescent
 	coalescent = create_coalescent(num_genomes);
-	auto &pool = coalescent;
-	auto &root = top(pool);
+	auto &root = top(coalescent);
 
 	// create core sequences
 	generate_i(std::back_inserter(cor_loci), img_core_size,
@@ -199,7 +194,7 @@ void img_model::simulate()
 					break;
 				}
 				// gain or loss event
-				/* This works because gene-gain/loss is a poisson process
+				/* This works because gene-gain/loss is a Poisson process
 				 * and as such the individual events are exponentially
 				 * distributed. This means the distribution is memoryless and
 				 * thus past events can be ignored.
@@ -280,18 +275,16 @@ std::vector<locus> img_model::get_genome(ssize_t genome_id)
 	auto ret = std::vector<locus>();
 	auto inserter = std::back_inserter(ret);
 
-	for (auto &locus_set : cor_loci) {
-		std::copy_if(locus_set.begin(), locus_set.end(), inserter,
-					 [&genome_id](const auto &loc) {
-						 return loc.get_genome_id() == genome_id;
-					 });
+	auto gid_filter = [&genome_id](const auto &loc) {
+		return loc.get_genome_id() == genome_id;
+	};
+
+	for (const auto &locus_set : cor_loci) {
+		std::copy_if(locus_set.begin(), locus_set.end(), inserter, gid_filter);
 	}
 
-	for (auto &locus_set : acc_loci) {
-		std::copy_if(locus_set.begin(), locus_set.end(), inserter,
-					 [&genome_id](const auto &loc) {
-						 return loc.get_genome_id() == genome_id;
-					 });
+	for (const auto &locus_set : acc_loci) {
+		std::copy_if(locus_set.begin(), locus_set.end(), inserter, gid_filter);
 	}
 
 	return ret;

@@ -124,6 +124,17 @@ class tree_node
 	}
 
 	/**
+	 * Compute the branch length.
+	 */
+	void compute_rel_time()
+	{
+		assert(has_parent());
+
+		auto branch_length = get_parent().get_abs_time() - get_abs_time();
+		set_time(branch_length);
+	}
+
+	/**
 	 * @brief Get the realtive time.
 	 * @returns the time relative to parent.
 	 */
@@ -189,7 +200,7 @@ class tree_node
 		return index;
 	}
 
-	/*
+	/**
 	 * @brief Execute an in-order traversal of the tree. Call the passed
 	 * function on each node.
 	 *
@@ -206,7 +217,7 @@ class tree_node
 		}
 	}
 
-	/*
+	/**
 	 * @brief Execute an in-order traversal of the tree. Three function may be
 	 * passed executed on entry, processing, and exit of a node, respectively.
 	 *
@@ -230,7 +241,7 @@ class tree_node
 		post(*this);
 	}
 
-	/*
+	/**
 	 * @brief Execute an in-order traversal of the tree. Three function may be
 	 * passed executed on entry, processing, and exit of a node, respectively.
 	 *
@@ -255,7 +266,7 @@ class tree_node
 		post(*this);
 	}
 
-	/*
+	/**
 	 * @brief Convert tree to newick format.
 	 *
 	 * @returns String in Newick format.
