@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -108,6 +109,55 @@ std::vector<tree_node> create_coalescent(size_t n)
 }
 
 /**
+ * @brief Compute distance matrix
+ */
+std::vector<std::vector<double>>
+create_distmatrix(const std::vector<tree_node> &pool, double mut_rate)
+{
+	auto INF = std::numeric_limits<double>::infinity();
+	auto m = pool.size();
+	auto n = (pool.size() + 1) / 2;
+	auto big = std::vector<double>(m * m, INF);
+	auto B = [&](size_t x, size_t y) -> double & {
+		return big[x * m + y]; // hack
+	};
+
+	for (size_t i = 0; i < m; i++) {
+		B(i, i) = 0.0;
+	}
+
+	auto start_ptr = &pool[0];
+	auto &root = top(pool);
+	root.traverse([&](const tree_node &self) {
+		if (self.has_parent()) {
+			auto x = &self - start_ptr;
+			auto y = &self.get_parent() - start_ptr;
+			B(x, y) = B(y, x) = self.get_time() * mut_rate;
+		}
+	});
+
+	// Floyd Warshall Algorithm
+	for (size_t k = 0; k < m; k++) {
+		for (size_t x = 0; x < m; x++) {
+			for (size_t y = 0; y < m; y++) {
+				auto tmp = std::min(B(x, y), B(x, k) + B(k, y));
+				B(x, y) = B(y, x) = tmp;
+			}
+		}
+	}
+
+	auto base = std::vector<double>(n, 0.0);
+	auto ret = std::vector<std::vector<double>>(n, base);
+	for (size_t x = 0; x < n; x++) {
+		for (size_t y = 0; y < n; y++) {
+			ret[x][y] = ret[y][x] = B(x, y);
+		}
+	}
+
+	return ret;
+}
+
+/**
  * @brief Simulate sequence evolution from the root.
  * @returns a vector of sequences sorted by genome ID.
  */
@@ -150,6 +200,7 @@ void img_model::simulate()
 {
 	// generate coalescent
 	coalescent = create_coalescent(num_genomes);
+	distmatrix = create_distmatrix(coalescent, mut_rate);
 	auto &root = top(coalescent);
 
 	// create core sequences

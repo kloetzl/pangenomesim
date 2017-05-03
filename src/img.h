@@ -1,5 +1,6 @@
 #pragma once
 #include "locus.h"
+#include "util.h"
 #include <cassert>
 #include <string>
 #include <vector>
@@ -21,6 +22,7 @@ class img_model
 	std::vector<std::vector<locus>> cor_loci = {};
 	std::vector<std::vector<locus>> acc_loci = {};
 	std::vector<tree_node> coalescent = {};
+	std::vector<std::vector<double>> distmatrix = {};
 
   public:
 	img_model() = default;
@@ -37,6 +39,10 @@ class img_model
 	std::vector<locus> get_locus(ssize_t);
 
 	std::string get_coalescent();
+	const std::vector<std::vector<double>> &get_distmatrix() const noexcept
+	{
+		return distmatrix;
+	}
 
 	virtual size_t get_num_loci() const noexcept
 	{
@@ -173,6 +179,16 @@ class tree_node
 	}
 
 	/**
+	 * @brief Get a reference to the parent. Must only be called on node that
+	 * have a parent.
+	 * @returns the parent node.
+	 */
+	const tree_node &get_parent() const noexcept
+	{
+		return *parent;
+	}
+
+	/**
 	 * @brief Checks whether this is an internal node.
 	 * @returns true iff the current node is branching.
 	 */
@@ -207,6 +223,23 @@ class tree_node
 	 * @param process - A function to execute on every node.
 	 */
 	template <typename Func> void traverse(const Func &process)
+	{
+		if (left_child) {
+			left_child->traverse(process);
+		}
+		process(*this);
+		if (right_child) {
+			right_child->traverse(process);
+		}
+	}
+
+	/**
+	 * @brief Execute an in-order traversal of the tree. Call the passed
+	 * function on each node.
+	 *
+	 * @param process - A function to execute on every node.
+	 */
+	template <typename Func> void traverse(const Func &process) const
 	{
 		if (left_child) {
 			left_child->traverse(process);

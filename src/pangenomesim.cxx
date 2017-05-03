@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <fstream>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <random>
 #include <regex>
@@ -186,6 +187,28 @@ int main(int argc, char *argv[])
 		tree_file << model.get_coalescent() << std::endl;
 
 		check_io(tree_file, file_name);
+	}
+
+	{ // matrix
+		auto file_name = OUT_DIR + "distance.mat";
+		auto mat_file = std::ofstream(file_name);
+		check_io(mat_file, file_name);
+
+		auto n = model.get_num_genomes();
+		const auto &distmatrix = model.get_distmatrix();
+
+		assert(distmatrix.size() == n);
+
+		mat_file << n << "\n";
+		for (size_t i = 0; i < n; i++) {
+			mat_file << genome_name(i);
+			for (auto d : distmatrix[i]) {
+				mat_file << "  " << std::setw(8) << std::setprecision(4) << d;
+			}
+			mat_file << "\n";
+		}
+
+		check_io(mat_file, file_name);
 	}
 
 	return 0;
