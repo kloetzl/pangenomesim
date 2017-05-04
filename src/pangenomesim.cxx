@@ -211,6 +211,57 @@ int main(int argc, char *argv[])
 		check_io(mat_file, file_name);
 	}
 
+	{ // MAF alignment
+		auto file_name = OUT_DIR + "alignment.maf";
+		auto maf_file = std::ofstream(file_name);
+		check_io(maf_file, file_name);
+		maf_file << "##maf version=1 program=pangenomesim\n";
+
+		auto loci_length = model.get_loci_length();
+
+		auto num_genomes = model.get_num_genomes();
+		// compute sequence sizes
+		auto seq_sizes = std::vector<size_t>(num_genomes);
+		for (size_t i = 0; i < num_genomes; i++) {
+			seq_sizes[i] = model.get_genome(i).size() * loci_length;
+		}
+
+		auto ref = model.get_reference();
+		auto ref_size = ref.size() * loci_length;
+
+		auto s_line = [&loci_length, &maf_file, &seq_sizes](const auto &loc) {
+			auto gid = loc.get_genome_id();
+			maf_file << "s " << genome_name(gid)  // genome ID
+					 << "." << loc.get_locus_id() // contig ID
+					 << " 0"					  // start
+					 << " " << loci_length		  // size
+					 << " +"					  // strand
+					 << " "
+					 << seq_sizes[gid] // size of the entire source sequence
+					 << " " << loc.get_nucl() // sequence
+					 << "\n";
+		};
+
+		for (size_t i = 0; i < model.get_num_loci(); i++) {
+			maf_file << "a\n";
+			// print reference
+			maf_file << "s " << genome_name(-1)				 // genome ID
+					 << "." << ref[i].get_locus_id() << " 0" // start
+					 << " " << loci_length					 // size
+					 << " +"								 // strand
+					 << " " << ref_size						 // size s.a.
+					 << " " << ref[i].get_nucl()			 // sequence
+					 << "\n";
+
+			auto tmp = model.get_locus(i);
+			std::for_each(tmp.begin(), tmp.end(), s_line);
+
+			maf_file << std::endl;
+		}
+
+		check_io(maf_file, file_name);
+	}
+
 	return 0;
 }
 

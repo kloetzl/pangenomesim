@@ -26,9 +26,8 @@ class img_model
 
   public:
 	img_model() = default;
-	virtual ~img_model() = default;
 
-	virtual void parse_param(std::string, std::string);
+	void parse_param(std::string, std::string);
 	std::string parameters() const;
 	void simulate();
 
@@ -44,14 +43,19 @@ class img_model
 		return distmatrix;
 	}
 
-	virtual size_t get_num_loci() const noexcept
+	size_t get_num_loci() const noexcept
 	{
 		return cor_loci.size() + acc_loci.size();
 	}
 
-	virtual size_t get_num_genomes() const noexcept
+	size_t get_num_genomes() const noexcept
 	{
 		return num_genomes;
+	}
+
+	auto get_loci_length() const noexcept
+	{
+		return loci_length;
 	}
 
   private:
