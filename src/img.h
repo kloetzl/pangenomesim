@@ -37,7 +37,6 @@ class img_model
 	std::vector<locus> get_genome(ssize_t);
 	std::vector<locus> get_locus(ssize_t);
 
-	std::string get_coalescent();
 	const std::vector<std::vector<double>> &get_distmatrix() const noexcept
 	{
 		return distmatrix;
@@ -56,6 +55,11 @@ class img_model
 	auto get_loci_length() const noexcept
 	{
 		return loci_length;
+	}
+
+	const tree_node &get_root() const
+	{
+		return top(coalescent);
 	}
 
   private:
@@ -301,42 +305,5 @@ class tree_node
 			right_child->traverse(pre, process, post);
 		}
 		post(*this);
-	}
-
-	/**
-	 * @brief Convert tree to newick format.
-	 *
-	 * @returns String in Newick format.
-	 */
-	std::string to_newick()
-	{
-		auto ret = std::string();
-
-		auto pre = [&ret](const tree_node &self) {
-			if (self.is_branch()) {
-				ret += "(";
-			}
-		};
-		auto process = [&ret](const tree_node &self) {
-			if (self.is_leaf()) {
-				ret += genome_name(self.get_index());
-			} else {
-				ret += ",";
-			}
-		};
-		auto post = [&ret](const tree_node &self) {
-			if (self.is_branch()) {
-				ret += ")";
-			}
-			if (self.up_time != 0.0) {
-				ret += ":";
-				ret += std::to_string(self.up_time);
-			}
-		};
-
-		traverse(pre, process, post);
-
-		ret += ";";
-		return ret;
 	}
 };

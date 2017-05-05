@@ -184,7 +184,30 @@ int main(int argc, char *argv[])
 		auto tree_file = std::ofstream(file_name);
 		check_io(tree_file, file_name);
 
-		tree_file << model.get_coalescent() << std::endl;
+		auto pre = [&tree_file](const tree_node &self) {
+			if (self.is_branch()) {
+				tree_file << "(";
+			}
+		};
+		auto process = [&tree_file](const tree_node &self) {
+			if (self.is_leaf()) {
+				tree_file << genome_name(self.get_index());
+			} else {
+				tree_file << ",";
+			}
+		};
+		auto post = [&tree_file](const tree_node &self) {
+			if (self.is_branch()) {
+				tree_file << ")";
+			}
+			if (self.get_time() != 0.0) {
+				tree_file << ":" << self.get_time();
+			}
+		};
+
+		model.get_root().traverse(pre, process, post);
+
+		tree_file << ";\n";
 
 		check_io(tree_file, file_name);
 	}

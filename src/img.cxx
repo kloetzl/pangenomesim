@@ -349,8 +349,3 @@ std::vector<locus> img_model::get_locus(ssize_t some_number)
 		return acc_loci.at(some_number - cor_loci.size()); // may throw
 	}
 }
-
-std::string img_model::get_coalescent()
-{
-	return top(coalescent).to_newick();
-}
