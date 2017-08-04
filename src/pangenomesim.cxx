@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 				auto arg_string = std::string(optarg);
 
 				// implement `getsubsopt(3)` like functionality
-				auto pattern = std::string("^(\\w+)(?:=([a-z_0-9.]+))?,?");
+				auto pattern = std::string("^([\\w\\-]+)(?:=([a-z_0-9.]+))?,?");
 				auto r = std::regex(pattern);
 
 				auto m = std::smatch();
@@ -292,12 +292,22 @@ void usage(int exit_code)
 {
 	static const char str[] = {
 		"usage: pangenomesim [OPTIONS...]\n"
-		"Simulate a pan-genome.\n\n"
+		"Simulate a pangenome according to the 'infinitely many genes' "
+		"model.\n\n"
+		"Options:\n"
 		"  -o, --out-dir DIR        The directory to write files to\n"
 		"  -p, --param KEY=VALUE    Set simulation parameter\n"
 		"  -v, --verbose            Print additional information\n"
 		"      --help               Display help and exit\n"
-		"      --version            Output version information and exit\n" //
+		"      --version            Output version information and exit\n\n"
+		"Simulation Parameters:\n"
+		"  core-size=INT            Minimum size of the core genome\n"
+		"  gene-length=INT          Length of a gene\n"
+		"  mut-rate=FLOAT           Substitution rate\n"
+		"  num-genomes=INT          Number of genomes\n"
+		"  rho=FLOAT                Rate of gene loss\n"
+		"  seed=INT                 Seed for random number generator\n"
+		"  theta=FLOAT              Rate of gene gain\n" //
 	};
 
 	fprintf(exit_code == EXIT_SUCCESS ? stdout : stderr, "%s", str);

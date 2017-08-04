@@ -10,23 +10,23 @@
 
 void img_model::parse_param(std::string key, std::string value)
 {
-	if (key == "img_theta") {
+	if (key == "theta") {
 		this->img_theta = std::stof(value);
 		return;
 	}
-	if (key == "img_rho") {
+	if (key == "rho") {
 		this->img_rho = std::stof(value);
 		return;
 	}
-	if (key == "img_core_size") {
+	if (key == "core-size") {
 		this->img_core_size = std::stoul(value);
 		return;
 	}
-	if (key == "loci_length") {
+	if (key == "gene-length") {
 		this->loci_length = std::stoul(value);
 		return;
 	}
-	if (key == "num_genomes") {
+	if (key == "num-genomes") {
 		this->num_genomes = std::stoul(value);
 		return;
 	}
@@ -35,7 +35,7 @@ void img_model::parse_param(std::string key, std::string value)
 		RNG = std::default_random_engine(seed);
 		return;
 	}
-	if (key == "mut_rate") {
+	if (key == "mut-rate") {
 		this->mut_rate = std::stof(value);
 		return;
 	}
@@ -45,12 +45,13 @@ std::string img_model::parameters() const
 {
 	auto str = std::stringstream();
 
-	str << "--param loci_length=" << loci_length << "\n";
-	str << "--param num_genomes=" << num_genomes << "\n";
-	str << "--param img_theta=" << img_theta << "\n";
-	str << "--param img_rho=" << img_rho << "\n";
-	str << "--param mut_rate=" << mut_rate << "\n";
+	str << "--param core-size=" << img_core_size << "\n";
+	str << "--param gene-length=" << loci_length << "\n";
+	str << "--param mut-rate=" << mut_rate << "\n";
+	str << "--param num-genomes=" << num_genomes << "\n";
+	str << "--param rho=" << img_rho << "\n";
 	str << "--param seed=" << seed << "\n";
+	str << "--param theta=" << img_theta << "\n";
 
 	return str.str();
 }
