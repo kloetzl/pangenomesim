@@ -1,5 +1,5 @@
 #pragma once
-#include "locus.h"
+#include "gene.h"
 #include "util.h"
 #include <cassert>
 #include <string>
@@ -10,17 +10,17 @@ class tree_node;
 class img_model
 {
   protected:
-	size_t loci_length = 100;
+	size_t gene_length = 100;
 	size_t num_genomes = 3;
 	size_t seed = 1729;
 	double img_theta = 0.1;
 	double img_rho = 0.1;
 	size_t img_core_size = 4;
 	double mut_rate = 0.01;
-	std::vector<locus> ref_core = {};
-	std::vector<locus> ref_acc = {};
-	std::vector<std::vector<locus>> cor_loci = {};
-	std::vector<std::vector<locus>> acc_loci = {};
+	std::vector<gene> ref_core = {};
+	std::vector<gene> ref_acc = {};
+	std::vector<std::vector<gene>> cor_genes = {};
+	std::vector<std::vector<gene>> acc_genes = {};
 	std::vector<tree_node> coalescent = {};
 	std::vector<std::vector<double>> distmatrix = {};
 
@@ -31,20 +31,20 @@ class img_model
 	std::string parameters() const;
 	void simulate();
 
-	std::vector<locus> get_reference();
-	std::vector<locus> get_core();
-	std::vector<locus> get_accessory();
-	std::vector<locus> get_genome(ssize_t);
-	std::vector<locus> get_locus(ssize_t);
+	std::vector<gene> get_reference();
+	std::vector<gene> get_core();
+	std::vector<gene> get_accessory();
+	std::vector<gene> get_genome(ssize_t);
+	std::vector<gene> get_gene(ssize_t);
 
 	const std::vector<std::vector<double>> &get_distmatrix() const noexcept
 	{
 		return distmatrix;
 	}
 
-	size_t get_num_loci() const noexcept
+	size_t get_num_genes() const noexcept
 	{
-		return cor_loci.size() + acc_loci.size();
+		return cor_genes.size() + acc_genes.size();
 	}
 
 	size_t get_num_genomes() const noexcept
@@ -52,9 +52,9 @@ class img_model
 		return num_genomes;
 	}
 
-	auto get_loci_length() const noexcept
+	auto get_gene_length() const noexcept
 	{
-		return loci_length;
+		return gene_length;
 	}
 
 	const tree_node &get_root() const
@@ -63,7 +63,7 @@ class img_model
 	}
 
   private:
-	std::vector<locus> seq_from_root(const tree_node &root, size_t locus_id);
+	std::vector<gene> seq_from_root(const tree_node &root, size_t gene_id);
 };
 
 class tree_node

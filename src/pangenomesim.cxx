@@ -1,6 +1,6 @@
 #include "global.h"
 #include "img.h"
-#include "locus.h"
+#include "gene.h"
 #include "util.h"
 #include <algorithm>
 #include <cstdio>
@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
 		auto fasta_file = std::ofstream(file_name);
 		check_io(fasta_file, file_name);
 
-		auto loci = model.get_genome(gn);
-		for (const auto &loc : loci) {
+		auto genes = model.get_genome(gn);
+		for (const auto &loc : genes) {
 			fasta_file << loc.to_fasta();
 		}
 
@@ -160,10 +160,10 @@ int main(int argc, char *argv[])
 	}
 
 	{ // compute gene frequency spectrum
-		auto num_loci = model.get_num_loci();
+		auto num_genes = model.get_num_genes();
 		auto gfs = std::vector<size_t>(model.get_num_genomes() + 1);
-		for (size_t i = 0; i < num_loci; i++) {
-			auto that = model.get_locus(i);
+		for (size_t i = 0; i < num_genes; i++) {
+			auto that = model.get_gene(i);
 			gfs.at(that.size())++;
 		}
 
@@ -240,24 +240,24 @@ int main(int argc, char *argv[])
 		check_io(maf_file, file_name);
 		maf_file << "##maf version=1 program=pangenomesim\n";
 
-		auto loci_length = model.get_loci_length();
+		auto gene_length = model.get_gene_length();
 
 		auto num_genomes = model.get_num_genomes();
 		// compute sequence sizes
 		auto seq_sizes = std::vector<size_t>(num_genomes);
 		for (size_t i = 0; i < num_genomes; i++) {
-			seq_sizes[i] = model.get_genome(i).size() * loci_length;
+			seq_sizes[i] = model.get_genome(i).size() * gene_length;
 		}
 
 		auto ref = model.get_reference();
-		auto ref_size = ref.size() * loci_length;
+		auto ref_size = ref.size() * gene_length;
 
-		auto s_line = [&loci_length, &maf_file, &seq_sizes](const auto &loc) {
+		auto s_line = [&gene_length, &maf_file, &seq_sizes](const auto &loc) {
 			auto gid = loc.get_genome_id();
 			maf_file << "s " << genome_name(gid)  // genome ID
-					 << "." << loc.get_locus_id() // contig ID
+					 << "." << loc.get_gene_id() // contig ID
 					 << " 0"					  // start
-					 << " " << loci_length		  // size
+					 << " " << gene_length		  // size
 					 << " +"					  // strand
 					 << " "
 					 << seq_sizes[gid] // size of the entire source sequence
@@ -265,18 +265,18 @@ int main(int argc, char *argv[])
 					 << "\n";
 		};
 
-		for (size_t i = 0; i < model.get_num_loci(); i++) {
+		for (size_t i = 0; i < model.get_num_genes(); i++) {
 			maf_file << "a\n";
 			// print reference
 			maf_file << "s " << genome_name(-1)				 // genome ID
-					 << "." << ref[i].get_locus_id() << " 0" // start
-					 << " " << loci_length					 // size
+					 << "." << ref[i].get_gene_id() << " 0" // start
+					 << " " << gene_length					 // size
 					 << " +"								 // strand
 					 << " " << ref_size						 // size s.a.
 					 << " " << ref[i].get_nucl()			 // sequence
 					 << "\n";
 
-			auto tmp = model.get_locus(i);
+			auto tmp = model.get_gene(i);
 			std::for_each(tmp.begin(), tmp.end(), s_line);
 
 			maf_file << std::endl;

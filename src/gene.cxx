@@ -1,17 +1,17 @@
-#include "locus.h"
+#include "gene.h"
 #include "global.h"
 #include <functional>
 #include <random>
 #include <string>
 #include <vector>
 
-locus::locus(std::string n, ssize_t gid, ssize_t lid)
-	: nucl(n), genome_id(gid), locus_id(lid)
+gene::gene(std::string n, ssize_t gid, ssize_t lid)
+	: nucl(n), genome_id(gid), gene_id(lid)
 {
 }
 
-locus::locus(ssize_t length, ssize_t gid, ssize_t lid)
-	: nucl(""), genome_id(gid), locus_id(lid)
+gene::gene(ssize_t length, ssize_t gid, ssize_t lid)
+	: nucl(""), genome_id(gid), gene_id(lid)
 {
 	nucl.reserve(length);
 
@@ -24,7 +24,7 @@ locus::locus(ssize_t length, ssize_t gid, ssize_t lid)
 	}
 }
 
-locus locus::mutate(double rate) const
+gene gene::mutate(double rate) const
 {
 	auto ret = *this; // copy
 
@@ -60,10 +60,10 @@ locus locus::mutate(double rate) const
 	return ret;
 }
 
-std::vector<locus> locus::vector_mutate(const std::vector<locus> &set,
+std::vector<gene> gene::vector_mutate(const std::vector<gene> &set,
 										double rate)
 {
-	auto ret = std::vector<locus>();
+	auto ret = std::vector<gene>();
 	ret.reserve(set.size());
 	for (const auto &loc : set) {
 		ret.push_back(loc.mutate(rate));
@@ -71,22 +71,22 @@ std::vector<locus> locus::vector_mutate(const std::vector<locus> &set,
 	return ret;
 }
 
-const std::string &locus::get_nucl() const
+const std::string &gene::get_nucl() const
 {
 	return nucl;
 }
 
-ssize_t locus::get_genome_id() const
+ssize_t gene::get_genome_id() const
 {
 	return genome_id;
 }
 
-ssize_t locus::get_locus_id() const
+ssize_t gene::get_gene_id() const
 {
-	return locus_id;
+	return gene_id;
 }
 
-void locus::set_genome_id(ssize_t index)
+void gene::set_genome_id(ssize_t index)
 {
 	genome_id = index;
 }
