@@ -306,7 +306,7 @@ void usage(int exit_code)
 		"  mut-rate=FLOAT           Substitution rate\n"
 		"  num-genomes=INT          Number of genomes\n"
 		"  rho=FLOAT                Rate of gene loss\n"
-		"  seed=INT                 Seed for random number generator\n"
+		"  seed=INT                 Seed for random number generator (use 0 for random)\n"
 		"  theta=FLOAT              Rate of gene gain\n" //
 	};
 

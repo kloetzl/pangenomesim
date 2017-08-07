@@ -204,6 +204,12 @@ std::vector<gene> img_model::seq_from_root(const tree_node &root,
  */
 void img_model::simulate()
 {
+	if (seed == 0) {
+		std::random_device rd;
+		seed = rd();
+		RNG = std::default_random_engine(seed);
+	}
+
 	// generate coalescent
 	coalescent = create_coalescent(num_genomes);
 	distmatrix = create_distmatrix(coalescent, mut_rate);

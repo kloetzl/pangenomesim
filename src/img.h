@@ -12,7 +12,7 @@ class img_model
   protected:
 	size_t gene_length = 100;
 	size_t num_genomes = 3;
-	size_t seed = 1729;
+	size_t seed = 0;
 	double img_theta = 0.1;
 	double img_rho = 0.1;
 	size_t img_core_size = 4;
