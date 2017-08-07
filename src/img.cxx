@@ -304,6 +304,18 @@ void img_model::simulate()
 	auto empty_it = std::remove_if(acc_genes.begin(), acc_genes.end(), is_empty);
 	acc_genes.erase(empty_it, acc_genes.end());
 
+	// move genes that were not lost on any lineages from accessory to core.
+	auto is_core = [=](const std::vector<gene> &set) {return set.size() == num_genomes;};
+	for (size_t i = 0; i < acc_genes.size(); i++) {
+		if (is_core(acc_genes[i])) {
+			cor_genes.push_back(acc_genes[i]);
+			ref_core.push_back(ref_acc[i]);
+		}
+	}
+
+	auto core_it = std::remove_if(acc_genes.begin(), acc_genes.end(), is_core);
+	acc_genes.erase(core_it, acc_genes.end());
+
 	this->acc_genes = acc_genes;
 }
 
