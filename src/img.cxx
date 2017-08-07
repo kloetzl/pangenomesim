@@ -8,6 +8,10 @@
 #include <sstream>
 #include <string>
 
+extern "C" {
+#include <err.h>
+}
+
 void img_model::parse_param(std::string key, std::string value)
 {
 	if (key == "theta") {
@@ -39,6 +43,7 @@ void img_model::parse_param(std::string key, std::string value)
 		this->mut_rate = std::stof(value);
 		return;
 	}
+	errx(1, "unkown key %s.", key.c_str());
 }
 
 std::string img_model::parameters() const
