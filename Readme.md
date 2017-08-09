@@ -1,10 +1,12 @@
 # PanGenomeSim
 
-Simulate bacterial pangenomes according to the 'infinitely many genes' model. 
+Simulate bacterial pangenomes according to the 'infinitely many genes' model and corresponding sequences using Jukes-Cantor.
 
 ## Installation
 
-    autoreconf -fi
+Download the latest [release](https://github.com/kloetzl/pangenomesim/releases). Then unpack and continue with the following steps.
+
+    autoreconf -fi  # optional when building from release tarball
     ./configure
     make
     make install  # optional, may require sudo
@@ -45,6 +47,10 @@ The following two calls are equivalent.
 
     pangenomesim --out-dir sim -p core-size=10 --param gene-length=2000
     pangenomesim -o sim -p core-size=10,gene-length=2000
+
+## References
+
+[IMG Model](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3342869/)
 
 ## License
 
