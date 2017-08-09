@@ -16,5 +16,6 @@ AC_CONFIG_HEADERS([src/config.h:src/config.hin])
 
 AC_CONFIG_FILES([
  Makefile
+ pangenomesim.1
 ])
 AC_OUTPUT

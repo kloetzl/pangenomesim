@@ -1,6 +1,6 @@
 # PanGenomeSim
 
-Simulate bacterial pangenomes according to the 'infinitely many genes' model.
+Simulate bacterial pangenomes according to the 'infinitely many genes' model. 
 
 ## Installation
 

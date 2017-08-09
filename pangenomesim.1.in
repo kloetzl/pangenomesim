@@ -1,0 +1,83 @@
+.TH PANGENOMESIM "1" "2017-08-09" "@VERSION@" "pangenomesim manual"
+.SH NAME
+pangenomesim \- simulate bacterial pangenomes
+
+.SH SYNOPSIS
+.B pangenomesim
+[\fIOPTIONS\fR] [\fI--param PARAMETERS\fR]
+
+.SH DESCRIPTION
+.TP
+As the name suggests, pangenomesim simulates pangenomes. It creates a coalescent and simulates genome evolution using the \fIinfinitely many genes\fR model. Sequence evolution is modeled using Jukes-Cantor.
+
+.SH OPTIONS
+.TP
+\fB\-o\fR, \fB\-\-out-dir\fR DIRECTORY
+Write the output files to \fIDIRECTORY\fR. If this option was not given, the files will be created in the current directory.
+.TP
+\fB-p\fR, \fB--param\fR KEY=VALUE
+Set a simulation parameter. See below.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Produce additional information.
+.TP
+\fB\-\-help\fR
+Display help and exit.
+.TP
+\fB\-\-version\fR
+Outputs version information and exit.
+
+.SH PARAMETERS
+Different parameters can be used to change the simulation. Use \fB-p KEY=VALUE\fR or \fB--param KEY=VALUE\fR to set a new value. Below, all parameters, their default value, and a short description are given.
+
+.IP
+\fBcore-size=4\fR: Simulate additional core genes.
+.IP
+\fBgene-length=100\fR: Set the length of a gene.
+.IP
+\fBmut-rate=0.01\fR: Change the nucleotide substitution rate.
+.IP
+\fBnum-genomes=3\fR: Set the total number of genomes.
+.IP
+\fBrho=0.1\fR: Rate of gene loss; See IMG model.
+.IP
+\fBseed=0\fR: Seed for RNG. Use 0 for random.
+.IP
+\fBtheta=0.1\fR: Rate of gene gain; See IMG model.
+
+.RE
+You can find the parameters used for a certain simulation in the \fIreproducible.seed\fR file.
+
+.SH OUTPUT
+
+On each run, pangenomesim will create various files in the output directory. If no directory option was given, the current directory will be populated.
+
+.IP
+\fBref.fasta\fR: A technical reference genome for simulation; Union of core and accessory genes.
+.IP
+\fBgenome*.fasta\fR: The individual simulated bacterial genomes.
+.IP
+\fBaccessory.fasta\fR: The dispensable part of the reference genome.
+.IP
+\fBcore.fasta\fR: Genes shared by all genomes.
+.IP
+\fBalignment.maf\fR: Sequence alignment of all genes.
+.IP
+\fBcoalescent.newick\fR: Evolutionary history of the genomes.
+.IP
+\fBdistance.mat\fR: Matrix of evolutionary distances.
+.IP
+\fBgenefrequency.gfs\fR: Distribution of gene frequencies.
+.IP
+\fBreproducible.seed\fR: Parameters to reproduce this simulation.
+
+.SH COPYRIGHT
+Copyright \(co 2017 Fabian Klötzl <fabian-pangenomesim@kloetzl.info>
+.br
+BSD 2-Clause License
+.PP
+
+.SH BUGS
+.SS Reporting Bugs
+Please report bugs to <fabian-pangenomesim@kloetzl.info> or at <https://github.com/kloetzl/pangenomesim>.
+.SS

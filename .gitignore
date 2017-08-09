@@ -18,6 +18,7 @@ src/stamp-h1
 # binaries
 *.o
 pangenomesim
+pangenomesim.1
 
 # random files
 *.fasta
