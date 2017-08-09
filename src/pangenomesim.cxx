@@ -2,6 +2,7 @@
 #include "img.h"
 #include "gene.h"
 #include "util.h"
+#include "config.h"
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -18,10 +19,6 @@ extern "C" {
 #include <errno.h>
 #include <getopt.h>
 }
-
-#ifndef VERSION
-#define VERSION "v0.2"
-#endif
 
 void usage(int);
 void version();

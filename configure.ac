@@ -1,4 +1,4 @@
-AC_INIT([pangenomesim], [0.2])
+AC_INIT([pangenomesim], [1.0])
 AM_INIT_AUTOMAKE([-Wall foreign])
 
 AC_PROG_CXX
