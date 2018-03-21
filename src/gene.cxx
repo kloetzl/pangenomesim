@@ -1,12 +1,19 @@
 #include "gene.h"
 #include "global.h"
+#include "util.h"
 #include <functional>
+#include <locale>
 #include <random>
 #include <string>
 #include <vector>
 
 gene::gene(std::string n, ssize_t gid, ssize_t lid)
 	: nucl(n), genome_id(gid), gene_id(lid)
+{
+}
+
+gene::gene(std::string n, std::string na, ssize_t gid, ssize_t lid)
+	: nucl(n), m_name(na), genome_id(gid), gene_id(lid)
 {
 }
 
@@ -38,7 +45,7 @@ gene gene::mutate(double rate) const
 	auto mut_acgt = std::uniform_int_distribution<int>(0, 2);
 	auto mutate = [&](char c) {
 		int idx = mut_acgt(RNG);
-		switch (c) {
+		switch (toupper(c)) {
 			case 'A': return NO_A[idx];
 			case 'C': return NO_C[idx];
 			case 'G': return NO_G[idx];
@@ -60,8 +67,7 @@ gene gene::mutate(double rate) const
 	return ret;
 }
 
-std::vector<gene> gene::vector_mutate(const std::vector<gene> &set,
-										double rate)
+std::vector<gene> gene::vector_mutate(const std::vector<gene> &set, double rate)
 {
 	auto ret = std::vector<gene>();
 	ret.reserve(set.size());
@@ -69,6 +75,13 @@ std::vector<gene> gene::vector_mutate(const std::vector<gene> &set,
 		ret.push_back(loc.mutate(rate));
 	}
 	return ret;
+}
+
+std::string gene::name() const
+{
+	if (!this->m_name.empty()) return m_name;
+
+	return genome_name(genome_id) + "." + std::to_string(gene_id);
 }
 
 const std::string &gene::get_nucl() const

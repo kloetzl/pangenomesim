@@ -1,8 +1,8 @@
+#include "config.h"
+#include "gene.h"
 #include "global.h"
 #include "img.h"
-#include "gene.h"
 #include "util.h"
-#include "config.h"
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -15,9 +15,13 @@
 #include <vector>
 
 extern "C" {
+#include "pfasta.h"
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
+#include <sys/stat.h>
+#include <unistd.h>
 }
 
 void usage(int);
@@ -26,6 +30,10 @@ void version();
 std::string OUT_DIR = std::string("./");
 std::default_random_engine RNG;
 bool VERBOSE = false;
+bool reference = false;
+std::vector<gene> reference_pool{};
+
+std::vector<gene> read_pool(std::string file_name);
 
 int main(int argc, char *argv[])
 {
@@ -33,6 +41,7 @@ int main(int argc, char *argv[])
 		{"version", no_argument, NULL, 0},
 		{"help", no_argument, NULL, 0},
 		{"param", required_argument, NULL, 'p'},
+		{"reference", required_argument, NULL, 'r'},
 		{"out-dir", required_argument, NULL, 'o'},
 		{"verbose", no_argument, NULL, 'v'},
 		{0, 0, 0, 0} // no comment
@@ -42,7 +51,7 @@ int main(int argc, char *argv[])
 
 	while (true) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "o:p:v", long_options, &option_index);
+		int c = getopt_long(argc, argv, "o:p:r:v", long_options, &option_index);
 
 		if (c == -1) {
 			break;
@@ -86,6 +95,11 @@ int main(int argc, char *argv[])
 					errx(1, "invalid parameter %s", optarg);
 				}
 
+				break;
+			}
+			case 'r': {
+				reference = true;
+				reference_pool = read_pool(optarg);
 				break;
 			}
 			case 'v': {
@@ -251,11 +265,11 @@ int main(int argc, char *argv[])
 
 		auto s_line = [&gene_length, &maf_file, &seq_sizes](const auto &loc) {
 			auto gid = loc.get_genome_id();
-			maf_file << "s " << genome_name(gid)  // genome ID
+			maf_file << "s " << genome_name(gid) // genome ID
 					 << "." << loc.get_gene_id() // contig ID
-					 << " 0"					  // start
-					 << " " << gene_length		  // size
-					 << " +"					  // strand
+					 << " 0"					 // start
+					 << " " << gene_length		 // size
+					 << " +"					 // strand
 					 << " "
 					 << seq_sizes[gid] // size of the entire source sequence
 					 << " " << loc.get_nucl() // sequence
@@ -265,12 +279,12 @@ int main(int argc, char *argv[])
 		for (size_t i = 0; i < model.get_num_genes(); i++) {
 			maf_file << "a\n";
 			// print reference
-			maf_file << "s " << genome_name(-1)				 // genome ID
+			maf_file << "s " << genome_name(-1)				// genome ID
 					 << "." << ref[i].get_gene_id() << " 0" // start
-					 << " " << gene_length					 // size
-					 << " +"								 // strand
-					 << " " << ref_size						 // size s.a.
-					 << " " << ref[i].get_nucl()			 // sequence
+					 << " " << gene_length					// size
+					 << " +"								// strand
+					 << " " << ref_size						// size s.a.
+					 << " " << ref[i].get_nucl()			// sequence
 					 << "\n";
 
 			auto tmp = model.get_gene(i);
@@ -283,6 +297,59 @@ int main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+std::vector<gene> read_pool(std::string s_file_name)
+{
+	auto ret = std::vector<gene>();
+	const char *file_name = s_file_name.c_str();
+
+	int file_descriptor =
+		s_file_name != "-" ? open(file_name, O_RDONLY) : STDIN_FILENO;
+
+	if (file_descriptor < 0) {
+		err(errno, "%s", file_name);
+	}
+
+	int l;
+	pfasta_file pf;
+
+	if ((l = pfasta_parse(&pf, file_descriptor)) != 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	int counter = 0;
+	pfasta_seq ps;
+	while ((l = pfasta_read(&pf, &ps)) == 0) {
+		// convert to gene
+		ret.emplace_back(ps.seq, ps.name, -1, counter++);
+		pfasta_seq_free(&ps);
+	}
+
+	if (l < 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	pfasta_free(&pf);
+	close(file_descriptor);
+
+	std::reverse(ret.begin(), ret.end()); // hack
+	return ret;
+}
+
+gene root_gene(ssize_t gene_length, ssize_t gene_id)
+{
+	if (!reference) return gene(gene_length, -1, gene_id);
+
+	if (reference_pool.empty()) {
+		reference = false;
+		std::cerr << "reference gene pool exhausted, switching to random\n";
+		return gene(gene_length, -1, gene_id);
+	}
+
+	auto ret = reference_pool.back();
+	reference_pool.pop_back();
+	return ret;
 }
 
 void usage(int exit_code)
@@ -303,7 +370,8 @@ void usage(int exit_code)
 		"  mut-rate=FLOAT           Substitution rate\n"
 		"  num-genomes=INT          Number of genomes\n"
 		"  rho=FLOAT                Rate of gene loss\n"
-		"  seed=INT                 Seed for random number generator (use 0 for random)\n"
+		"  seed=INT                 Seed for random number generator (use 0 "
+		"for random)\n"
 		"  theta=FLOAT              Rate of gene gain\n" //
 	};
 

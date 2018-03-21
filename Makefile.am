@@ -1,7 +1,8 @@
 bin_PROGRAMS=pangenomesim
-pangenomesim_SOURCES=src/global.h src/pangenomesim.cxx src/util.h src/util.cxx src/img.h src/img.cxx src/gene.h src/gene.cxx
-pangenomesim_CPPFLAGS=-Wall -Wextra -Weffc++ -std=c++14
-pangenomesim_CXXFLAGS=
+pangenomesim_SOURCES=src/global.h src/pangenomesim.cxx src/util.h src/util.cxx src/img.h src/img.cxx src/gene.h src/gene.cxx src/pfasta.h src/pfasta.c
+pangenomesim_CPPFLAGS=-Wall -Wextra
+pangenomesim_CXXFLAGS= -std=c++14
+pangenomesim_CFLAGS=
 
 dist_man_MANS=pangenomesim.1
 
