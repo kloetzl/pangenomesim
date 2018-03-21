@@ -49,6 +49,8 @@ int main(int argc, char *argv[])
 
 	auto model = img_model();
 
+	if (argc == 1) usage(EXIT_SUCCESS);
+
 	while (true) {
 		int option_index = 0;
 		int c = getopt_long(argc, argv, "o:p:r:v", long_options, &option_index);
@@ -361,6 +363,7 @@ void usage(int exit_code)
 		"Options:\n"
 		"  -o, --out-dir DIR        The directory to write files to\n"
 		"  -p, --param KEY=VALUE    Set simulation parameter\n"
+		"  -r, --reference FASTA    Set reference genes\n"
 		"  -v, --verbose            Print additional information\n"
 		"      --help               Display help and exit\n"
 		"      --version            Output version information and exit\n\n"
@@ -383,7 +386,7 @@ void version()
 {
 	static const char str[] = {
 		"pangenomesim " VERSION "\n"
-		"Copyright (C) 2017,  Fabian Klötzl "
+		"Copyright (C) 2017 - 2018,  Fabian Klötzl "
 		"<fabian-pangenomesim@kloetzl.info>\n"
 		"BSD 2-Clause License\n" //
 	};
