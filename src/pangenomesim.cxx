@@ -1,8 +1,8 @@
+#include "config.h"
+#include "gene.h"
 #include "global.h"
 #include "img.h"
-#include "gene.h"
 #include "util.h"
-#include "config.h"
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -251,11 +251,11 @@ int main(int argc, char *argv[])
 
 		auto s_line = [&gene_length, &maf_file, &seq_sizes](const auto &loc) {
 			auto gid = loc.get_genome_id();
-			maf_file << "s " << genome_name(gid)  // genome ID
+			maf_file << "s " << genome_name(gid) // genome ID
 					 << "." << loc.get_gene_id() // contig ID
-					 << " 0"					  // start
-					 << " " << gene_length		  // size
-					 << " +"					  // strand
+					 << " 0"					 // start
+					 << " " << gene_length		 // size
+					 << " +"					 // strand
 					 << " "
 					 << seq_sizes[gid] // size of the entire source sequence
 					 << " " << loc.get_nucl() // sequence
@@ -265,12 +265,12 @@ int main(int argc, char *argv[])
 		for (size_t i = 0; i < model.get_num_genes(); i++) {
 			maf_file << "a\n";
 			// print reference
-			maf_file << "s " << genome_name(-1)				 // genome ID
+			maf_file << "s " << genome_name(-1)				// genome ID
 					 << "." << ref[i].get_gene_id() << " 0" // start
-					 << " " << gene_length					 // size
-					 << " +"								 // strand
-					 << " " << ref_size						 // size s.a.
-					 << " " << ref[i].get_nucl()			 // sequence
+					 << " " << gene_length					// size
+					 << " +"								// strand
+					 << " " << ref_size						// size s.a.
+					 << " " << ref[i].get_nucl()			// sequence
 					 << "\n";
 
 			auto tmp = model.get_gene(i);
@@ -280,6 +280,37 @@ int main(int argc, char *argv[])
 		}
 
 		check_io(maf_file, file_name);
+	}
+
+	{ // Output panmatrix, see https://github.com/kloetzl/pangenomesim/issues/1
+		auto file_name = OUT_DIR + "panmatrix.tsv";
+		auto mat_file = std::ofstream(file_name);
+		check_io(mat_file, file_name);
+
+		auto num_genes = model.get_num_genes();
+		auto num_genomes = model.get_num_genomes();
+
+		mat_file << "GeneNumber";
+		for (size_t i = 0; i < num_genes; i++) {
+			mat_file << "\t" << (i + 1);
+		}
+		mat_file << std::endl;
+
+		for (size_t i = 0; i < num_genomes; i++) {
+			auto row = std::vector<bool>(num_genes, false);
+
+			for (const auto &gene : model.get_genome(i)) {
+				row[gene.get_gene_id()] = true;
+			}
+
+			mat_file << genome_name(i);
+			for (auto contains : row) {
+				mat_file << "\t" << contains;
+			}
+			mat_file << std::endl;
+		}
+
+		check_io(mat_file, file_name);
 	}
 
 	return 0;
@@ -303,7 +334,8 @@ void usage(int exit_code)
 		"  mut-rate=FLOAT           Substitution rate\n"
 		"  num-genomes=INT          Number of genomes\n"
 		"  rho=FLOAT                Rate of gene loss\n"
-		"  seed=INT                 Seed for random number generator (use 0 for random)\n"
+		"  seed=INT                 Seed for random number generator (use 0 "
+		"for random)\n"
 		"  theta=FLOAT              Rate of gene gain\n" //
 	};
 
