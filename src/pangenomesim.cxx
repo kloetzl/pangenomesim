@@ -298,6 +298,37 @@ int main(int argc, char *argv[])
 		check_io(maf_file, file_name);
 	}
 
+	{ // Output panmatrix, see https://github.com/kloetzl/pangenomesim/issues/1
+		auto file_name = OUT_DIR + "panmatrix.tsv";
+		auto mat_file = std::ofstream(file_name);
+		check_io(mat_file, file_name);
+
+		auto num_genes = model.get_num_genes();
+		auto num_genomes = model.get_num_genomes();
+
+		mat_file << "GeneNumber";
+		for (size_t i = 0; i < num_genes; i++) {
+			mat_file << "\t" << (i + 1);
+		}
+		mat_file << std::endl;
+
+		for (size_t i = 0; i < num_genomes; i++) {
+			auto row = std::vector<bool>(num_genes, false);
+
+			for (const auto &gene : model.get_genome(i)) {
+				row[gene.get_gene_id()] = true;
+			}
+
+			mat_file << genome_name(i);
+			for (auto contains : row) {
+				mat_file << "\t" << contains;
+			}
+			mat_file << std::endl;
+		}
+
+		check_io(mat_file, file_name);
+	}
+
 	return 0;
 }
 
