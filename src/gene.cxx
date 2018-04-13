@@ -60,8 +60,7 @@ gene gene::mutate(double rate) const
 	return ret;
 }
 
-std::vector<gene> gene::vector_mutate(const std::vector<gene> &set,
-										double rate)
+std::vector<gene> gene::vector_mutate(const std::vector<gene> &set, double rate)
 {
 	auto ret = std::vector<gene>();
 	ret.reserve(set.size());

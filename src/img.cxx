@@ -168,7 +168,7 @@ create_distmatrix(const std::vector<tree_node> &pool, double mut_rate)
  * @returns a vector of sequences sorted by genome ID.
  */
 std::vector<gene> img_model::seq_from_root(const tree_node &root,
-											size_t gene_id)
+										   size_t gene_id)
 {
 	// create core sequences
 	auto sample_size = num_genomes;
@@ -216,10 +216,9 @@ void img_model::simulate()
 	auto &root = top(coalescent);
 
 	// create core sequences
-	generate_i(std::back_inserter(cor_genes), img_core_size,
-			   [this, &root](size_t gene_id) {
-				   return seq_from_root(root, gene_id);
-			   });
+	generate_i(
+		std::back_inserter(cor_genes), img_core_size,
+		[this, &root](size_t gene_id) { return seq_from_root(root, gene_id); });
 
 	// generate pan genome and create sequences
 	auto acc_genes = std::vector<std::vector<gene>>();
@@ -247,7 +246,7 @@ void img_model::simulate()
 
 			// simulate evolution
 			auto neu = gene::vector_mutate(top(stack),
-											that.mut_rate * self.get_time());
+										   that.mut_rate * self.get_time());
 			auto time = 0.0;
 			while (time < self.get_time()) {
 				auto time_to_go = self.get_time() - time;
@@ -307,11 +306,14 @@ void img_model::simulate()
 	auto is_empty = [](const std::vector<gene> &set) { return set.empty(); };
 
 	// erase-remove-idiom
-	auto empty_it = std::remove_if(acc_genes.begin(), acc_genes.end(), is_empty);
+	auto empty_it =
+		std::remove_if(acc_genes.begin(), acc_genes.end(), is_empty);
 	acc_genes.erase(empty_it, acc_genes.end());
 
 	// move genes that were not lost on any lineages from accessory to core.
-	auto is_core = [=](const std::vector<gene> &set) {return set.size() == num_genomes;};
+	auto is_core = [=](const std::vector<gene> &set) {
+		return set.size() == num_genomes;
+	};
 	for (size_t i = 0; i < acc_genes.size(); i++) {
 		if (is_core(acc_genes[i])) {
 			cor_genes.push_back(acc_genes[i]);
