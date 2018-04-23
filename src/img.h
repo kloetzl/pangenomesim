@@ -3,6 +3,8 @@
 #include "util.h"
 #include <cassert>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class tree_node;
@@ -24,12 +26,30 @@ class img_model
 	std::vector<tree_node> coalescent = {};
 	std::vector<std::vector<double>> distmatrix = {};
 
+	using gene_id_type = ssize_t;
+	using genome_id_type = ssize_t;
+
+	std::unordered_set<gene_id_type> gene_id_list = {};
+	std::unordered_set<genome_id_type> genome_id_list = {};
+	std::unordered_map<gene_id_type, std::unordered_map<genome_id_type, gene>>
+		store = {};
+
   public:
 	img_model() = default;
 
 	void parse_param(std::string, std::string);
 	std::string parameters() const;
 	void simulate();
+
+	void add(gene g)
+	{
+		genome_id_list.insert(g.get_genome_id());
+		gene_id_list.insert(g.get_gene_id());
+		store[g.get_gene_id()][g.get_genome_id()] = g;
+	}
+
+	std::vector<ssize_t> genome_ids();
+	std::vector<ssize_t> gene_ids();
 
 	std::vector<gene> get_reference();
 	std::vector<gene> get_core();
@@ -44,7 +64,7 @@ class img_model
 
 	size_t get_num_genes() const noexcept
 	{
-		return cor_genes.size() + acc_genes.size();
+		return gene_id_list.size();
 	}
 
 	size_t get_num_genomes() const noexcept
@@ -64,6 +84,7 @@ class img_model
 
   private:
 	std::vector<gene> seq_from_root(const tree_node &root, size_t gene_id);
+	void sim_core_gene(const tree_node &, size_t);
 };
 
 class tree_node

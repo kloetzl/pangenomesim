@@ -1,5 +1,6 @@
 #pragma once
 #include "util.h"
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,22 @@ class gene
 
 	gene mutate(double) const;
 	static std::vector<gene> vector_mutate(const std::vector<gene> &, double);
+
+	template <typename T> static T bulk_mutate(const T &set, double rate)
+	{
+		auto ret = T();
+
+		ret.reserve(set.size());
+		std::transform(set.begin(), set.end(), std::inserter(ret, ret.end()),
+					   [rate](const auto &aggregate) {
+						   auto loc = aggregate.second;
+						   auto p = std::make_pair(aggregate.first,
+												   loc.mutate(rate));
+						   return p;
+					   });
+
+		return ret;
+	}
 
 	std::string to_fasta() const
 	{

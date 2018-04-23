@@ -157,10 +157,12 @@ int main(int argc, char *argv[])
 	}
 
 	{ // compute gene frequency spectrum
-		auto num_genes = model.get_num_genes();
 		auto gfs = std::vector<size_t>(model.get_num_genomes() + 1);
-		for (size_t i = 0; i < num_genes; i++) {
-			auto that = model.get_gene(i);
+		std::cerr << gfs.size() << std::endl;
+
+		const auto &gene_ids = model.gene_ids();
+		for (auto gene_id : gene_ids) {
+			auto that = model.get_gene(gene_id);
 			gfs.at(that.size())++;
 		}
 
@@ -249,32 +251,40 @@ int main(int argc, char *argv[])
 		auto ref = model.get_reference();
 		auto ref_size = ref.size() * gene_length;
 
-		auto s_line = [&gene_length, &maf_file, &seq_sizes](const auto &loc) {
-			auto gid = loc.get_genome_id();
-			maf_file << "s " << genome_name(gid) // genome ID
-					 << "." << loc.get_gene_id() // contig ID
-					 << " 0"					 // start
-					 << " " << gene_length		 // size
-					 << " +"					 // strand
-					 << " "
-					 << seq_sizes[gid] // size of the entire source sequence
-					 << " " << loc.get_nucl() // sequence
-					 << "\n";
-		};
+		for (auto gene_id : model.gene_ids()) {
+			auto ref_seq = std::find_if(ref.begin(), ref.end(),
+										[gene_id = gene_id](const gene &g) {
+											return g.get_gene_id() == gene_id;
+										});
 
-		for (size_t i = 0; i < model.get_num_genes(); i++) {
+			if (ref_seq == ref.end()) {
+				std::cerr << "gene_id without reference: " << gene_id
+						  << std::endl;
+				continue;
+			}
+
 			maf_file << "a\n";
 			// print reference
-			maf_file << "s " << genome_name(-1)				// genome ID
-					 << "." << ref[i].get_gene_id() << " 0" // start
-					 << " " << gene_length					// size
-					 << " +"								// strand
-					 << " " << ref_size						// size s.a.
-					 << " " << ref[i].get_nucl()			// sequence
+			maf_file << "s " << genome_name(-1)	// genome ID
+					 << "." << gene_id << " 0"	 // start
+					 << " " << gene_length		   // size
+					 << " +"					   // strand
+					 << " " << ref_size			   // size s.a.
+					 << " " << ref_seq->get_nucl() // sequence
 					 << "\n";
 
-			auto tmp = model.get_gene(i);
-			std::for_each(tmp.begin(), tmp.end(), s_line);
+			for (const auto &loc : model.get_gene(gene_id)) {
+				auto gid = loc.get_genome_id();
+				maf_file << "s " << genome_name(gid) // genome ID
+						 << "." << loc.get_gene_id() // contig ID
+						 << " 0"					 // start
+						 << " " << gene_length		 // size
+						 << " +"					 // strand
+						 << " "
+						 << seq_sizes[gid] // size of the entire source sequence
+						 << " " << loc.get_nucl() // sequence
+						 << "\n";
+			}
 
 			maf_file << std::endl;
 		}
@@ -287,25 +297,25 @@ int main(int argc, char *argv[])
 		auto mat_file = std::ofstream(file_name);
 		check_io(mat_file, file_name);
 
-		auto num_genes = model.get_num_genes();
+		const auto &gene_ids = model.gene_ids();
 		auto num_genomes = model.get_num_genomes();
 
 		mat_file << "GeneNumber";
-		for (size_t i = 0; i < num_genes; i++) {
-			mat_file << "\t" << (i + 1);
+		for (auto id : gene_ids) {
+			mat_file << "\t" << id;
 		}
 		mat_file << std::endl;
 
 		for (size_t i = 0; i < num_genomes; i++) {
-			auto row = std::vector<bool>(num_genes, false);
+			auto row = std::unordered_map<ssize_t, bool>();
 
 			for (const auto &gene : model.get_genome(i)) {
 				row[gene.get_gene_id()] = true;
 			}
 
 			mat_file << genome_name(i);
-			for (auto contains : row) {
-				mat_file << "\t" << contains;
+			for (auto id : gene_ids) {
+				mat_file << "\t" << (row.find(id) != row.end());
 			}
 			mat_file << std::endl;
 		}

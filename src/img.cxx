@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -199,6 +200,37 @@ std::vector<gene> img_model::seq_from_root(const tree_node &root,
 	return leaves;
 }
 
+void img_model::sim_core_gene(const tree_node &root, size_t gene_id)
+{
+	// create core sequences
+	auto sample_size = num_genomes;
+	auto stack = std::vector<gene>();
+	stack.reserve(sample_size);
+
+	auto seq = gene(gene_length, -1, gene_id); // random root seq
+	stack.push_back(seq);
+
+	ref_core.push_back(seq);
+
+	root.traverse(
+		[&stack, this](const tree_node &self) {
+			if (self.has_parent()) {
+				auto seq = top(stack).mutate(self.get_time() * mut_rate);
+				stack.push_back(seq);
+			}
+		},
+		[&stack, this](const tree_node &self) {
+			if (self.is_leaf()) {
+				// set genome id
+				top(stack).set_genome_id(self.get_index());
+				add(top(stack));
+			}
+		},
+		[&stack](const tree_node &) {
+			stack.pop_back(); //
+		});
+}
+
 /**
  * @brief do the work.
  */
@@ -210,43 +242,48 @@ void img_model::simulate()
 		RNG = std::default_random_engine(seed);
 	}
 
+	using genome_type = std::unordered_map<ssize_t, gene>;
+
 	// generate coalescent
 	coalescent = create_coalescent(num_genomes);
 	distmatrix = create_distmatrix(coalescent, mut_rate);
 	auto &root = top(coalescent);
 
 	// create core sequences
-	generate_i(
-		std::back_inserter(cor_genes), img_core_size,
-		[this, &root](size_t gene_id) { return seq_from_root(root, gene_id); });
+	for (auto i = (size_t)0; i < img_core_size; i++) {
+		sim_core_gene(root, i);
+	}
 
 	// generate pan genome and create sequences
-	auto acc_genes = std::vector<std::vector<gene>>();
-
-	auto start = std::vector<gene>();
+	auto start = genome_type();
 	auto start_size = rand_poisson(img_theta / img_rho);
 	start.reserve(start_size);
-	acc_genes.resize(start_size);
-	generate_i(std::back_inserter(start), start_size, [=](size_t gene_id) {
-		return gene(gene_length, -1, gene_id + img_core_size);
-	});
+
+	// this is awful.
+	for (auto deleteme = (size_t)0; deleteme < start_size; deleteme++) {
+		auto new_gene_id = deleteme + img_core_size;
+		start.insert(
+			std::make_pair(new_gene_id, gene(gene_length, -1, new_gene_id)));
+	}
 
 	auto gene_id = start_size + img_core_size;
-	ref_acc = start; // copy
+	for (auto &p : start) {
+		ref_acc.push_back(p.second);
+	}
 
-	auto stack = std::vector<std::vector<gene>>();
+	auto stack = std::vector<genome_type>();
 	stack.reserve(num_genomes);
 	stack.push_back(start);
 
 	root.traverse(
-		[&stack, &that = *this, &acc_genes, &gene_id ](const tree_node &self) {
+		[&stack, &that = *this, &gene_id](const tree_node &self) {
 			if (!self.has_parent()) {
 				return; // root
 			}
 
 			// simulate evolution
-			auto neu = gene::vector_mutate(top(stack),
-										   that.mut_rate * self.get_time());
+			auto neu =
+				gene::bulk_mutate(top(stack), that.mut_rate * self.get_time());
 			auto time = 0.0;
 			while (time < self.get_time()) {
 				auto time_to_go = self.get_time() - time;
@@ -262,32 +299,33 @@ void img_model::simulate()
 				 * thus past events can be ignored.
 				 */
 				if (time_to_gain < time_to_loss || neu.empty()) {
-					neu.emplace_back(that.gene_length, -1, gene_id++);
-					acc_genes.resize(acc_genes.size() + 1);
-					that.ref_acc.push_back(top(neu));
+					auto gained = gene(that.gene_length, -1, gene_id++);
+					neu[gained.get_gene_id()] = gained;
+					that.ref_acc.push_back(gained);
 					time += time_to_gain;
 				} else {
 					assert(neu.size() != 0);
 					auto loser = rand_int(0, neu.size());
 					// pick one
-					std::swap(neu[loser], top(neu));
-					neu.pop_back();
+					auto it = neu.begin();
+					std::advance(it, loser);
+					neu.erase(it);
 					time += time_to_loss;
 				}
 			}
 
 			stack.push_back(neu);
 		},
-		[&stack, &acc_genes,
-		 img_core_size = this->img_core_size ](const tree_node &self) {
+		[&stack, &that = *this](const tree_node &self) {
 			if (self.is_branch()) {
 				return;
 			}
 
 			auto genome_id = self.get_index();
-			for (auto &loc : top(stack)) {
+			for (auto &aggregate : top(stack)) {
+				auto &loc = aggregate.second;
 				loc.set_genome_id(genome_id);
-				acc_genes[loc.get_gene_id() - img_core_size].push_back(loc);
+				that.add(loc);
 			}
 		},
 		[&stack](const tree_node &) {
@@ -296,35 +334,38 @@ void img_model::simulate()
 
 	assert(stack.empty());
 
-	// filter out empty genes which were fully lost
-	assert(ref_acc.size() == acc_genes.size());
-	auto it =
-		remove_if_i(ref_acc.begin(), ref_acc.end(),
-					[&acc_genes](size_t i) { return acc_genes.at(i).empty(); });
+	/*
+	 * Genes that are fully lost, never make it to a leaf. Thus, their ID never
+	 * gets added to the set of available gene_ids. So at this point we do not
+	 * have to filter out empty gene_ids. However, this might change in a future
+	 * version, so I leave this code in (commented), for now.
+	 *
+	 * https://stackoverflow.com/questions/9210014/remove-elements-from-an-unordered-map-fulfilling-a-predicate
+	 */
+	// for (auto it = gene_id_list.begin(); it != gene_id_list.end();) {
+	// 	std::cerr << *it << " " << get_gene(*it).size() << std::endl;
+	// 	if (get_gene(*it).empty()) {
+	// 		std::cerr << "got removed: " << *it << std::endl;
+	// 		gene_id_list.erase(it++);
+	// 	} else {
+	// 		it++;
+	// 	}
+	// }
+
+	auto it = remove_if(ref_acc.begin(), ref_acc.end(), [this](const gene &g) {
+		return get_gene(g.get_gene_id()).empty();
+	});
 	ref_acc.erase(it, ref_acc.end());
 
-	auto is_empty = [](const std::vector<gene> &set) { return set.empty(); };
-
-	// erase-remove-idiom
-	auto empty_it =
-		std::remove_if(acc_genes.begin(), acc_genes.end(), is_empty);
-	acc_genes.erase(empty_it, acc_genes.end());
-
 	// move genes that were not lost on any lineages from accessory to core.
-	auto is_core = [=](const std::vector<gene> &set) {
-		return set.size() == num_genomes;
+	auto is_core = [this](const gene &g) {
+		return get_gene(g.get_gene_id()).size() == get_num_genomes();
 	};
-	for (size_t i = 0; i < acc_genes.size(); i++) {
-		if (is_core(acc_genes[i])) {
-			cor_genes.push_back(acc_genes[i]);
-			ref_core.push_back(ref_acc[i]);
-		}
-	}
 
-	auto core_it = std::remove_if(acc_genes.begin(), acc_genes.end(), is_core);
-	acc_genes.erase(core_it, acc_genes.end());
-
-	this->acc_genes = acc_genes;
+	std::copy_if(ref_acc.begin(), ref_acc.end(), std::back_inserter(ref_core),
+				 is_core);
+	auto split = std::remove_if(ref_acc.begin(), ref_acc.end(), is_core);
+	ref_acc.erase(split, ref_acc.end());
 }
 
 std::vector<gene> img_model::get_reference()
@@ -350,18 +391,15 @@ std::vector<gene> img_model::get_accessory()
 std::vector<gene> img_model::get_genome(ssize_t genome_id)
 {
 	auto ret = std::vector<gene>();
-	auto inserter = std::back_inserter(ret);
 
-	auto gid_filter = [&genome_id](const auto &loc) {
-		return loc.get_genome_id() == genome_id;
-	};
+	for (auto gene_id : gene_ids()) {
+		auto ii = store.find(gene_id);
+		if (ii == store.end()) continue;
 
-	for (const auto &gene_set : cor_genes) {
-		std::copy_if(gene_set.begin(), gene_set.end(), inserter, gid_filter);
-	}
-
-	for (const auto &gene_set : acc_genes) {
-		std::copy_if(gene_set.begin(), gene_set.end(), inserter, gid_filter);
+		auto it = store[gene_id].find(genome_id);
+		if (it != store[gene_id].end()) {
+			ret.push_back(it->second);
+		}
 	}
 
 	return ret;
@@ -369,9 +407,26 @@ std::vector<gene> img_model::get_genome(ssize_t genome_id)
 
 std::vector<gene> img_model::get_gene(ssize_t some_number)
 {
-	if (some_number < cor_genes.size()) {
-		return cor_genes.at(some_number); // throws on some_number < 0
-	} else {
-		return acc_genes.at(some_number - cor_genes.size()); // may throw
+	auto ret = std::vector<gene>();
+	auto it = store.find(some_number);
+
+	if (it == store.end()) return ret; // blank
+
+	const auto &map = it->second;
+
+	for (const auto &entry : map) {
+		ret.push_back(entry.second);
 	}
+
+	return ret;
+}
+
+std::vector<ssize_t> img_model::genome_ids()
+{
+	return std::vector<ssize_t>(genome_id_list.begin(), genome_id_list.end());
+}
+
+std::vector<ssize_t> img_model::gene_ids()
+{
+	return std::vector<ssize_t>(gene_id_list.begin(), gene_id_list.end());
 }
